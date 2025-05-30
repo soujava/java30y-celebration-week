@@ -4,7 +4,7 @@
     "title": "Event Opening",
     "description": "",
     "language": "english",
-    "time": "11:30",
+    "time": "12:00",
     "date": "2025-06-02",
     "speakers": ["karina"]
   },
@@ -13,18 +13,9 @@
     "title": "Beyond LLMs: Architecting Enterprise AI with Symbolic Reasoning and Executable Knowledge Models",
     "description": "As Generative AI reshapes modern software, the enterprise faces a new challenge: how to adopt LLMs while ensuring predictable, explainable, and compliant outcomes. This session outlines a practical strategy that combines the flexibility of LLMs with the structure of Symbolic AI to meet enterprise requirements.\n\nA very powerful approach is leveraging Knowledge Representation and Reasoning (KRR) through standards like DMN and BPMN, which act as both knowledge models and runnable artifacts. Backed by the open-source Apache KIE (including Drools and jBPM engines), these models provide transparent, auditable, and deterministic behavior.\n\nThis hybrid architecture combines the strengths of Statistical and Symbolic AI—unlocking innovation while delivering the control enterprises demand. If you're designing systems that must reason, comply, and explain — not just predict — this session will help you confidently move from experimentation to production.",
     "language": "english",
-    "time": "11:30",
+    "time": "12:00",
     "date": "2025-06-02",
     "speakers": ["alex"]
-  },
-  {
-    "id": "salaboy-coming",
-    "title": "Coming Soon",
-    "description": "",
-    "language": "english",
-    "time": "12:30",
-    "date": "2025-06-02",
-    "speakers": ["salaboy"]
   },
   {
     "id": "max-coming",
