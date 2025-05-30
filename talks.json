@@ -1,0 +1,110 @@
+[
+  {
+    "id": "karina-opening",
+    "title": "Event Opening",
+    "description": "",
+    "language": "english",
+    "time": "11:30",
+    "date": "2025-06-02",
+    "speakers": ["karina"]
+  },
+  {
+    "id": "alex-talk",
+    "title": "Beyond LLMs: Architecting Enterprise AI with Symbolic Reasoning and Executable Knowledge Models",
+    "description": "As Generative AI reshapes modern software, the enterprise faces a new challenge: how to adopt LLMs while ensuring predictable, explainable, and compliant outcomes. This session outlines a practical strategy that combines the flexibility of LLMs with the structure of Symbolic AI to meet enterprise requirements.\n\nA very powerful approach is leveraging Knowledge Representation and Reasoning (KRR) through standards like DMN and BPMN, which act as both knowledge models and runnable artifacts. Backed by the open-source Apache KIE (including Drools and jBPM engines), these models provide transparent, auditable, and deterministic behavior.\n\nThis hybrid architecture combines the strengths of Statistical and Symbolic AI—unlocking innovation while delivering the control enterprises demand. If you're designing systems that must reason, comply, and explain — not just predict — this session will help you confidently move from experimentation to production.",
+    "language": "english",
+    "time": "11:30",
+    "date": "2025-06-02",
+    "speakers": ["alex"]
+  },
+  {
+    "id": "salaboy-coming",
+    "title": "Coming Soon",
+    "description": "",
+    "language": "english",
+    "time": "12:30",
+    "date": "2025-06-02",
+    "speakers": ["salaboy"]
+  },
+  {
+    "id": "max-coming",
+    "title": "Coming Soon",
+    "description": "",
+    "language": "english",
+    "time": "12:00",
+    "date": "2025-06-03",
+    "speakers": ["max"]
+  },
+  {
+    "id": "isidro-coming",
+    "title": "Coming Soon",
+    "description": "",
+    "language": "portuguese",
+    "time": "11:30",
+    "date": "2025-06-04",
+    "speakers": ["isidro"]
+  },
+  {
+    "id": "alina-talk",
+    "title": "Bring the Action: Using GraalVM in Production",
+    "description": "GraalVM has been around for a while, and more and more developers and teams are using it to run Java applications faster, more efficiently, and more securely. According to the latest 'State of Spring' survey, 37% of Spring users either already run applications natively compiled GraalVM in production, or are currently evaluating it, and 31% more have such plans.\n\nFor those who haven't moved to GraalVM yet though, the questions and concerns are usually similar: how hard is it to migrate? Can I use my libraries and tools? Can I monitor such native applications?\n\nWhat about using the latest Java features? In this hands-on session, we'll talk about all the practical aspects of building and running applications with GraalVM, tooling, monitoring, and using popular libraries, and cover common questions that we get from users.",
+    "language": "english",
+    "time": "12:30",
+    "date": "2025-06-04",
+    "speakers": ["alina"]
+  },
+  {
+    "id": "bene-talk",
+    "title": "Observability with Quarkus and OpenTelemetry",
+    "description": "",
+    "language": "english",
+    "time": "11:30",
+    "date": "2025-06-05",
+    "speakers": ["bene"]
+  },
+  {
+    "id": "tim-coming",
+    "title": "Coming Soon",
+    "description": "",
+    "language": "english",
+    "time": "12:00",
+    "date": "2025-06-05",
+    "speakers": ["tim"]
+  },
+  {
+    "id": "sebastien-coming",
+    "title": "Coming Soon",
+    "description": "",
+    "language": "english",
+    "time": "13:00",
+    "date": "2025-06-05",
+    "speakers": ["sebastien"]
+  },
+  {
+    "id": "elder-talk",
+    "title": "Mastering Java Concurrency: Pitfalls, Patterns, and Performance Engineering for Massive Scale",
+    "description": "",
+    "language": "english",
+    "time": "14:00",
+    "date": "2025-06-05",
+    "speakers": ["elder"]
+  },
+  {
+    "id": "otavio-talk",
+    "title": "Domain-Driven Design: From Strategic Discipline to Tactical Implementation",
+    "description": "It's impressive how widely known DDD is—and yet, how rarely it's applied effectively in real-world systems. One of the most common pitfalls? Not knowing where to start. Many developers jump straight into tactical patterns without understanding that DDD is first and foremost a strategic discipline. It's not just about code—it's about aligning software with business.\n\nBefore touching implementation, we must understand the domains and subdomains, define bounded contexts, and establish a clear ubiquitous language. Only then should we move into tactical modeling: entities, aggregates, repositories, and so on.\n\nTo support implementation, I'll also present JMolecules, a powerful tool that brings architectural clarity to code. It integrates seamlessly with tools like ArchUnit, letting you validate architecture rules just like unit tests.",
+    "language": "english",
+    "time": "12:00",
+    "date": "2025-06-06",
+    "speakers": ["otavio"]
+  },
+  {
+    "id": "panel",
+    "title": "Panel",
+    "description": "",
+    "language": "portuguese",
+    "time": "13:00",
+    "date": "2025-06-06",
+    "speakers": ["karina", "otavio"]
+  }
+] 

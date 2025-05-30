@@ -1,0 +1,105 @@
+[
+  {
+    "id": "alex",
+    "name": "Alex Porcelli",
+    "title": "Co-founder @ Aletyx",
+    "bio": "Open source contributor and cloud platform specialist.",
+    "image": "speakers-pics/alex.jpg",
+    "linkedin": "https://www.linkedin.com/in/alexporcelli/",
+    "twitter": "https://x.com/porcelli"
+  },
+  {
+    "id": "alina",
+    "name": "Alina Yurenko",
+    "title": "Developer Advocate for GraalVM | Open Source at Oracle",
+    "bio": "I'm a developer advocate for the awesome GraalVM 🐰 at Oracle. I create sample projects, write blog posts, speak at conferences, and collaborate with our open source community. I love traveling, working out, reading fiction, learning new things, and talking to people :) For speaking & content engagements, you can get in touch with me anywhere on social, such as on Twitter or BlueSky.",
+    "image": "speakers-pics/alina.png",
+    "linkedin": "https://linkedin.com/in/alinayurenko",
+    "twitter": "https://x.com/alina_yurenko"
+  },
+  {
+    "id": "bene",
+    "name": "Rafael Benevides",
+    "title": "Java | Software Engineer | Architect | RHCA | DevOps | Book Author | Speaker",
+    "bio": "Software engineer and architect with expertise in Java, DevOps, and cloud technologies.",
+    "image": "speakers-pics/bene.png",
+    "linkedin": "https://www.linkedin.com/in/rafabene/"
+  },
+  {
+    "id": "elder",
+    "name": "Elder Moraes",
+    "title": "Java Champion | Developer Advocate | Published Author | Speaker",
+    "bio": "Java Champion with expertise in enterprise Java and microservices.",
+    "image": "speakers-pics/elder.jpeg",
+    "linkedin": "https://www.linkedin.com/in/eldermoraes/",
+    "twitter": "https://x.com/elderjava"
+  },
+  {
+    "id": "isidro",
+    "name": "Professor Isídro",
+    "title": "Java Champion | Professor | Instrutor | Consultor | Java Developer | Cloud Computing Specialist",
+    "bio": "Professor Isidro é atualmente professor da UFABC. Doutor em Engenharia Elétrica com ênfase em Sistemas Digitais e Mestre em Ciência da Computação.\n\nAtua com Game Development, Mobile Computing, High Performance e Cloud Computing. Fanático por jogos e programação, ainda acredita que teremos um Brasil mais programador e empreendedor!"
+    "image": "speakers-pics/isidro.jpg",
+    "linkedin": "https://www.linkedin.com/in/professor-isidro-phd/",
+    "twitter": "https://x.com/prof_isidro"
+  },
+  {
+    "id": "karina",
+    "name": "Karina Varela",
+    "title": "JakartaEE Ambassador | Co-founder, Automating & Architecting for Enterprises. Open Source++",
+    "bio": "Karina is a tech company co-founder, published author, JakartaEE Ambassador, Red Hat Champion, and international speaker with a strong presence in the Java and open source ecosystem.\n\nOver more than a decade, she has helped shape, evolve, and position enterprise-grade technologies worldwide—leading high-impact initiatives at the world's largest open source company and one of the top global tech giants.\n\nShe is a frequent speaker at major technology conferences around the world and is widely recognized for her technical authority and sharp communication. Karina also leads SouJava Brazil and SouJava Brasilia, two of the most prominent Java communities globally.",
+    "image": "speakers-pics/karina.png",
+    "linkedin": "https://www.linkedin.com/in/kvarel4/",
+    "twitter": "https://x.com/kvarel4"
+  },
+  {
+    "id": "max",
+    "name": "Max Arruda",
+    "title": "Senior IT Engineer Analyst | Developer Advocate 🥑 | Jakarta EE Ambassador | Jakarta NoSQL Committer | Oracle ACE Associate | SouJava JUG leader ☕️ | Open-source contributor | Streamer, Speaker and Article writer🎤📄",
+"bio": "Maximillian has been involved with software development since 2003. He is a Software Engineer, Developer Advocate, open-source enthusiast, Committer of the Jakarta NoSQL specification and Eclipse JNoSQL project, the latter of which is an implementation of the Jakarta NoSQL and Jakarta Data specifications. Maximillian is also a Jakarta EE Contributor and Ambassador.\n\nMaximillian is also a JUG leader at SouJava (The Java Users Society), one of the world's largest Java User Groups Community, and an Oracle ACE Associate. His international speaking experience includes: Jakarta Tech Talks; GeeCON 2023 Prague; EclipseCON 2023 Germany; Oracle DevLive SP 2024 and GeeCON 2024 Kraków.\n\nMaximillian enjoys learning and helping developers by organizing, participating, and speaking at tech events and meetup community events. Besides liking tech stuff, he loves martial arts, especially Shotokan Karate - he is 1st DAN level and teaches in the school that his association is part of. He follows the 'family first' philosophy! He highly enjoys playing video games with his sons: Pietro and Giulliano. Of course, he loves standing with his wife: Maira."    "image": "speakers-pics/max.jpeg",
+    "linkedin": "https://www.linkedin.com/in/maxarruda/",
+    "twitter": "https://x.com/maxdearruda"
+  },
+  {
+    "id": "michael",
+    "name": "Michael Redlich",
+    "title": "Java Champion | Director at Garden State JUG | Lead Java Editor at InfoQ Java | Contract Developer Advocate and Technical Writer at Payara",
+    "bio": "Java Champion | Director at Garden State JUG | Lead Java Editor at InfoQ Java | Contract Developer Advocate and Technical Writer at Payara.",
+    "image": "speakers-pics/michael.png",
+    "linkedin": "https://www.linkedin.com/in/michael-redlich-13a966/",
+    "twitter": "https://x.com/mpredli"
+  },
+  {
+    "id": "otavio",
+    "name": "Otávio Santana",
+    "title": "Software Engineer | Software Architect | Speaker | Writer | Book Author | Consultant | Staff Engineer | Mentor | Open Source Committer | Java Champion 💻 🚀",
+    "bio": "I am Otavio. I have made significant contributions to the Java and open-source ecosystems. Since Java 8, I have helped shape the direction and objectives of the Java platform as a member of the JCP Executive Committee. Additionally, I serve as a committer and leader in several open-source projects and specifications.\n\nRecognized for my impactful work, I have received numerous accolades, including all categories of the JCP Awards and the Duke's Choice Award. I am also a distinguished Java Champion and a member of the Oracle ACE program.\n\nBeyond technology, I am an enthusiast for history and the economy. I love traveling, programming, and learning languages. I speak Portuguese, English, Spanish, Italian, and French fluently and have a particular talent for dad jokes.",
+    "image": "speakers-pics/otavio.png",
+    "linkedin": "https://www.linkedin.com/in/otaviojava/",
+    "twitter": "https://x.com/otaviojava"
+  },
+  {
+    "id": "salaboy",
+    "name": "Maurício Salatino",
+    "title": "OSS & Ecosystem Engineer @Diagrid @Dapr @DaprDev - Java Champion - Platform Engineering on Kubernetes Author",
+    "bio": "I am Mauricio Salatino, also known as @salaboy, and I am passionate about Open Source, Kubernetes, and Cloud-Native software. I still consider myself a developer at heart.\n\nI am an Open Source & Ecosystem Software Engineer at @Diagrid, contributing to and driving initiatives for the Dapr OSS project. I also serve as a Steering Committee member for the Knative Project, and I am Co-Leading the Knative Functions initiative. I am serving as a co-chair of the TAG AppDelivery Application Development working group for the CNCF.\n\nI also wrote a book titled Platform Engineering on Kubernetes for Manning. I previously worked at VMware and Red Hat, building tools to help developers be more productive."    "image": "speakers-pics/salaboy.jpeg",
+    "linkedin": "https://www.linkedin.com/in/salaboy/",
+    "twitter": "https://x.com/salaboy"
+  },
+  {
+    "id": "sebastien",
+    "name": "Sébastien Blanc",
+    "title": "Java Champion, Experienced Developer Relations Engineer",
+    "bio": "Sébastien Blanc is a Passion-Driven-Developer with one primary goal : Make the Developers Happy. He likes to share his passion by giving talks that are pragmatic, fun and focused on live coding.",
+    "image": "speakers-pics/sebastien.jpg",
+    "linkedin": "https://www.linkedin.com/in/sébastien-blanc-08a73b1/"
+  },
+  {
+    "id": "tim",
+    "name": "Tim Wuthenow",
+    "title": "IT Enterprise Transformation Leader",
+    "bio": "Java developer and open source contributor.",
+    "image": "speakers-pics/tim.png",
+    "linkedin": "https://www.linkedin.com/in/timwuthenow/"
+  }
+] 

@@ -581,181 +581,172 @@
         dayjs.extend(dayjs_plugin_utc);
         dayjs.extend(dayjs_plugin_timezone);
 
-        const timezoneButtons = document.querySelectorAll('.timezone-btn');
-        const timeCells = document.querySelectorAll('[data-time]');
+        let speakers = {};
+        let talks = [];
 
+        // Fetch speakers and talks JSON, then render schedule
+        Promise.all([
+            fetch('speakers.json').then(res => res.json()),
+            fetch('talks.json').then(res => res.json())
+        ]).then(([speakersArr, talksArr]) => {
+            // Convert speakers array to object for fast lookup
+            speakersArr.forEach(s => { speakers[s.id] = s; });
+            talks = talksArr;
+            renderSchedule();
+            setupSpeakerPopups();
+            updateTimes('America/Sao_Paulo');
+        });
+
+        function renderSchedule() {
+            const tbody = document.querySelector('tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            // Group talks by date
+            const talksByDate = {};
+            talks.forEach(talk => {
+                if (!talksByDate[talk.date]) talksByDate[talk.date] = [];
+                talksByDate[talk.date].push(talk);
+            });
+            // Sort dates
+            const sortedDates = Object.keys(talksByDate).sort();
+            const dateLabels = {
+                '2025-06-02': 'Monday, June 2',
+                '2025-06-03': 'Tuesday, June 3',
+                '2025-06-04': 'Wednesday, June 4',
+                '2025-06-05': 'Thursday, June 5',
+                '2025-06-06': 'Friday, June 6'
+            };
+            sortedDates.forEach(date => {
+                // Day header
+                const trDay = document.createElement('tr');
+                trDay.innerHTML = `<td class="day-header" colspan="3">${dateLabels[date] || date}</td>`;
+                tbody.appendChild(trDay);
+                // Talks for this day
+                talksByDate[date].forEach(talk => {
+                    const isExpandable = talk.description && talk.description.trim().length > 0;
+                    const tr = document.createElement('tr');
+                    if (isExpandable) tr.classList.add('expandable-row');
+                    tr.setAttribute('data-talk-id', talk.id);
+                    // Time
+                    const tdTime = document.createElement('td');
+                    tdTime.className = 'table-cell table-cell-time font-medium text-[#F77347]';
+                    tdTime.setAttribute('data-time', talk.time);
+                    tdTime.textContent = talk.time;
+                    // Session
+                    const tdSession = document.createElement('td');
+                    tdSession.className = 'table-cell table-cell-session';
+                    tdSession.innerHTML =
+                        `${talk.title} <span class="session-language">(${talk.language})</span>` +
+                        (isExpandable ? ` <span class="arrow-icon">⤵</span>
+                        <div id="${talk.id}" class="talk-description">$${formatDescription(talk.description)}</div>` : '');
+                    // Speakers
+                    const tdSpeaker = document.createElement('td');
+                    tdSpeaker.className = 'table-cell table-cell-speaker';
+                    tdSpeaker.innerHTML = talk.speakers.map(sid => {
+                        const s = speakers[sid];
+                        if (!s) return '';
+                        return `<div class="speaker-profile" data-speaker="${s.id}">
+                            <img src="${s.image}" alt="${s.name}" class="speaker-avatar">
+                            <span class="speaker-name">${s.name}</span>
+                        </div>`;
+                    }).join('<div class="mt-2"></div>');
+                    tr.appendChild(tdTime);
+                    tr.appendChild(tdSession);
+                    tr.appendChild(tdSpeaker);
+                    tbody.appendChild(tr);
+                });
+            });
+        }
+
+        // Timezone logic (unchanged)
+        const timezoneButtons = document.querySelectorAll('.timezone-btn');
         function updateTimes(timezone) {
-            timeCells.forEach(cell => {
+            document.querySelectorAll('[data-time]').forEach(cell => {
                 const time = cell.dataset.time;
+                if (!/^\d{2}:\d{2}$/.test(time)) return;
                 const [hours, minutes] = time.split(':');
-                
-                // Create a date object for today with the specified time in São Paulo
                 const date = dayjs().tz('America/Sao_Paulo')
                     .hour(parseInt(hours))
                     .minute(parseInt(minutes));
-                
-                // Convert to target timezone
                 const convertedTime = date.tz(timezone).format('HH:mm');
                 cell.textContent = convertedTime;
             });
-
             timezoneButtons.forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.tz === timezone);
             });
         }
-
         timezoneButtons.forEach(btn => {
             btn.addEventListener('click', () => {
                 updateTimes(btn.dataset.tz);
             });
         });
 
-        // Set default timezone
-        updateTimes('America/Sao_Paulo');
-
-        // Speaker popup functionality
-        const speakerData = {
-            alex: {
-                name: "Alex Porcelli",
-                title: "Co-founder @ Aletyx",
-                bio: "Open source contributor and cloud platform specialist.",
-                image: "speakers-pics/alex.jpg",
-                linkedin: "https://www.linkedin.com/in/alexporcelli/",
-                twitter: "https://x.com/porcelli"
-            },
-            alina: {
-                name: "Alina Yurenko",
-                title: "Developer Advocate for GraalVM | Open Source at Oracle",
-                bio: "I'm a developer advocate for the awesome GraalVM 🐰 at Oracle. I create sample projects, write blog posts, speak at conferences, and collaborate with our open source community. I love traveling, working out, reading fiction, learning new things, and talking to people :) For speaking & content engagements, you can get in touch with me anywhere on social, such as on Twitter or BlueSky.",
-                image: "speakers-pics/alina.png",
-                linkedin: "https://linkedin.com/in/alinayurenko",
-                twitter: "https://x.com/alina_yurenko"
-            },
-            bene: {
-                name: "Rafael Benevides",
-                title: "Java | Software Engineer | Architect | RHCA | DevOps | Book Author | Speaker",
-                bio: "Software engineer and architect with expertise in Java, DevOps, and cloud technologies.",
-                image: "speakers-pics/bene.png",
-                linkedin: "https://www.linkedin.com/in/rafabene/"
-            },
-            elder: {
-                name: "Elder Moraes",
-                title: "Java Champion | Developer Advocate | Published Author | Speaker",
-                bio: "Java Champion with expertise in enterprise Java and microservices.",
-                image: "speakers-pics/elder.jpeg",
-                linkedin: "https://www.linkedin.com/in/eldermoraes/",
-                twitter: "https://x.com/elderjava"
-            },
-            isidro: {
-                name: "Professor Isídro",
-                title: "Java Champion | Professor | Instrutor | Consultor | Java Developer | Cloud Computing Specialist",
-                bio: "Professor Isidro é atualmente professor da UFABC. Doutor em Engenharia Elétrica com ênfase em Sistemas Digitais e Mestre em Ciência da Computação. Atua com Game Development, Mobile Computing, High Performance e Cloud Computing. Fanático por jogos e programação, ainda acredita que teremos um Brasil mais programador e empreendedor!",
-                image: "speakers-pics/isidro.jpg",
-                linkedin: "https://www.linkedin.com/in/professor-isidro-phd/",
-                twitter: "https://x.com/prof_isidro"
-            },
-            karina: {
-                name: "Karina Varela",
-                title: "JakartaEE Ambassador | Co-founder, Automating & Architecting for Enterprises. Open Source++",
-                bio: "Karina is a tech company co-founder, published author, JakartaEE Ambassador, Red Hat Champion, and international speaker with a strong presence in the Java and open source ecosystem.\n\nOver more than a decade, she has helped shape, evolve, and position enterprise-grade technologies worldwide—leading high-impact initiatives at the world's largest open source company and one of the top global tech giants.\n\nShe is a frequent speaker at major technology conferences around the world and is widely recognized for her technical authority and sharp communication. Karina also leads SouJava Brazil and SouJava Brasilia, two of the most prominent Java communities globally.",
-                image: "speakers-pics/karina.png",
-                linkedin: "https://www.linkedin.com/in/kvarel4/",
-                twitter: "https://x.com/kvarel4"
-            },
-            max: {
-                name: "Max Arruda",
-                title: "Senior IT Engineer Analyst | Developer Advocate 🥑 | Jakarta EE Ambassador | Jakarta NoSQL Committer | Oracle ACE Associate | SouJava JUG leader ☕️ | Open-source contributor | Streamer, Speaker and Article writer🎤📄",
-                bio: "Maximillian has been involved with software development since 2003. He is a Software Engineer, Developer Advocate, open-source enthusiast, Committer of the Jakarta NoSQL specification and Eclipse JNoSQL project, the latter of which is an implementation of the Jakarta NoSQL and Jakarta Data specifications. Maximillian is also a Jakarta EE Contributor and Ambassador. Maximillian is also a JUG leader at SouJava (The Java Users Society), one of the world's largest Java User Groups Community, and an Oracle ACE Associate. His international speaking experience includes: Jakarta Tech Talks; GeeCON 2023 Prague; EclipseCON 2023 Germany; Oracle DevLive SP 2024 and GeeCON 2024 Kraków. Maximillian enjoys learning and helping developers by organizing, participating, and speaking at tech events and meetup community events. Besides liking tech stuff, he loves martial arts, especially Shotokan Karate - he is 1st DAN level and teaches in the school that his association is part of. He follows the 'family first' philosophy! He highly enjoys playing video games with his sons: Pietro and Giulliano. Of course, he loves standing with his wife: Maira.",
-                image: "speakers-pics/max.jpeg",
-                linkedin: "https://www.linkedin.com/in/maxarruda/",
-                twitter: "https://x.com/maxdearruda"
-            },
-            michael: {
-                name: "Michael Redlich",
-                title: "Java Champion | Director at Garden State JUG | Lead Java Editor at InfoQ Java | Contract Developer Advocate and Technical Writer at Payara",
-                bio: "Java Champion | Director at Garden State JUG | Lead Java Editor at InfoQ Java | Contract Developer Advocate and Technical Writer at Payara.",
-                image: "speakers-pics/michael.png",
-                linkedin: "https://www.linkedin.com/in/michael-redlich-13a966/",
-                twitter: "https://x.com/mpredli"
-            },
-            otavio: {
-                name: "Otávio Santana",
-                title: "Software Engineer | Software Architect | Speaker | Writer | Book Author | Consultant | Staff Engineer | Mentor | Open Source Committer | Java Champion 💻 🚀",
-                bio: "Java Champion specializing in NoSQL databases and Jakarta EE.",
-                image: "speakers-pics/otavio.png",
-                linkedin: "https://www.linkedin.com/in/otaviojava/",
-                twitter: "https://x.com/otaviojava"
-            },
-            salaboy: {
-                name: "Maurício Salatino",
-                title: "OSS & Ecosystem Engineer @Diagrid @Dapr @DaprDev - Java Champion - Platform Engineering on Kubernetes Author",
-                bio: "I am Mauricio Salatino, also known as @salaboy, and I am passionate about Open Source, Kubernetes, and Cloud-Native software. I still consider myself a developer at heart. I am an Open Source & Ecosystem Software Engineer at @Diagrid, contributing to and driving initiatives for the Dapr OSS project. I also serve as a Steering Committee member for the Knative Project, and I am Co-Leading the Knative Functions initiative. I am serving as a co-chair of the TAG AppDelivery Application Development working group for the CNCF. I also wrote a book titled Platform Engineering on Kubernetes for Manning. I previously worked at VMware and Red Hat, building tools to help developers be more productive.",
-                image: "speakers-pics/salaboy.jpeg",
-                linkedin: "https://www.linkedin.com/in/salaboy/",
-                twitter: "https://x.com/salaboy"
-            },
-            sebastien: {
-                name: "Sébastien Blanc",
-                title: "Java Champion, Experienced Developer Relations Engineer",
-                bio: "Sébastien Blanc is a Passion-Driven-Developer with one primary goal : Make the Developers Happy. He likes to share his passion by giving talks that are pragmatic, fun and focused on live coding.",
-                image: "speakers-pics/sebastien.jpg",
-                linkedin: "https://www.linkedin.com/in/sébastien-blanc-08a73b1/"
-            },
-            tim: {
-                name: "Tim Wuthenow",
-                title: "IT Enterprise Transformation Leader",
-                bio: "Java developer and open source contributor.",
-                image: "speakers-pics/tim.png",
-                linkedin: "https://www.linkedin.com/in/timwuthenow/"
-            }
-        };
-
+        // Speaker popup logic
+        function setupSpeakerPopups() {
+            document.querySelectorAll('.speaker-profile').forEach(profile => {
+                profile.onclick = function(e) {
+                    e.stopPropagation();
+                    showSpeakerPopup(profile.dataset.speaker);
+                };
+            });
+        }
         function showSpeakerPopup(speakerId) {
-            const speaker = speakerData[speakerId];
+            const s = speakers[speakerId];
+            if (!s) return;
             const popup = document.getElementById('speakerPopup');
             const content = popup.querySelector('.speaker-popup-content');
-            
-            content.querySelector('img').src = speaker.image;
-            content.querySelector('img').alt = speaker.name;
-            content.querySelector('h3').textContent = speaker.name;
-            content.querySelector('p').textContent = speaker.title;
-            content.querySelector('.bio-content').textContent = speaker.bio;
-            
+            content.querySelector('img').src = s.image;
+            content.querySelector('img').alt = s.name;
+            content.querySelector('h3').textContent = s.name;
+            content.querySelector('p').textContent = s.title;
+            content.querySelector('.bio-content').textContent = s.bio;
             const linkedinLink = content.querySelector('.linkedin-link');
             const twitterLink = content.querySelector('.twitter-link');
-            
-            linkedinLink.href = speaker.linkedin;
-            linkedinLink.style.display = speaker.linkedin ? 'block' : 'none';
-            
-            twitterLink.href = speaker.twitter;
-            twitterLink.style.display = speaker.twitter ? 'block' : 'none';
-            
+            linkedinLink.href = s.linkedin || '#';
+            linkedinLink.style.display = s.linkedin ? 'block' : 'none';
+            twitterLink.href = s.twitter || '#';
+            twitterLink.style.display = s.twitter ? 'block' : 'none';
             popup.classList.add('active');
         }
-
         function closeSpeakerPopup() {
             document.getElementById('speakerPopup').classList.remove('active');
         }
-
         function toggleDescription(talkId) {
             const description = document.getElementById(talkId);
-            description.classList.toggle('active');
+            if (description) description.classList.toggle('active');
         }
-
-        // Add click handlers to all speaker profiles
-        document.querySelectorAll('.speaker-profile').forEach(profile => {
-            profile.addEventListener('click', (e) => {
-                e.stopPropagation(); // Prevent row click when clicking profile
-                showSpeakerPopup(profile.dataset.speaker);
-            });
-        });
-
         // Close popup when clicking outside
         document.getElementById('speakerPopup').addEventListener('click', (e) => {
             if (e.target === e.currentTarget) {
                 closeSpeakerPopup();
             }
         });
+
+        // Event delegation for popups and expandable rows
+        document.querySelector('tbody').onclick = function(e) {
+            const speakerProfile = e.target.closest('.speaker-profile');
+            if (speakerProfile) {
+                e.stopPropagation();
+                showSpeakerPopup(speakerProfile.dataset.speaker);
+                return;
+            }
+            const expandableRow = e.target.closest('.expandable-row');
+            if (expandableRow && !e.target.closest('.speaker-profile')) {
+                const talkId = expandableRow.getAttribute('data-talk-id');
+                const desc = expandableRow.querySelector('.talk-description');
+                if (desc) desc.classList.toggle('active');
+            }
+        };
+
+        // Add this helper function before renderSchedule
+        function formatDescription(desc) {
+            if (!desc) return '';
+            return desc
+                .replace(/\n\n/g, '<br><br>')
+                .replace(/\n/g, ' ')
+                .trim();
+        }
     </script>
 </body>
 </html> 
