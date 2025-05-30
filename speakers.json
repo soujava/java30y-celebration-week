@@ -78,14 +78,7 @@
     "linkedin": "https://www.linkedin.com/in/otaviojava/",
     "twitter": "https://x.com/otaviojava"
   },
-  {
-    "id": "salaboy",
-    "name": "Maurício Salatino",
-    "title": "OSS & Ecosystem Engineer @Diagrid @Dapr @DaprDev - Java Champion - Platform Engineering on Kubernetes Author",
-    "bio": "I am Mauricio Salatino, also known as @salaboy, and I am passionate about Open Source, Kubernetes, and Cloud-Native software. I still consider myself a developer at heart.\n\nI am an Open Source & Ecosystem Software Engineer at @Diagrid, contributing to and driving initiatives for the Dapr OSS project. I also serve as a Steering Committee member for the Knative Project, and I am Co-Leading the Knative Functions initiative. I am serving as a co-chair of the TAG AppDelivery Application Development working group for the CNCF.\n\nI also wrote a book titled Platform Engineering on Kubernetes for Manning. I previously worked at VMware and Red Hat, building tools to help developers be more productive."    "image": "speakers-pics/salaboy.jpeg",
-    "linkedin": "https://www.linkedin.com/in/salaboy/",
-    "twitter": "https://x.com/salaboy"
-  },
+
   {
     "id": "sebastien",
     "name": "Sébastien Blanc",
