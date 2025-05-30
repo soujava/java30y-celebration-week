@@ -1,0 +1,17 @@
+# macOS system files
+.DS_Store
+
+# Editor/AI config
+.cursorrules
+
+# Backup files
+bkp.index.html
+
+# Node/npm (if ever used)
+node_modules/
+
+# OS generated files
+Thumbs.db
+
+# Git
+.git/ 
