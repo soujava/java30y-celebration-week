@@ -5,9 +5,7 @@ This is the static site for the SouJava 30-Year Celebration Week, published at:
 👉 **[https://soujava.github.io/java30y-celebration-week/](https://soujava.github.io/java30y-celebration-week/)**
 
 ## About
-- Modern, mobile-friendly, and fully static event site.
-- All content is driven by JSON files for easy updates via pull request.
-- No build step, no backend, no frameworks—just HTML, CSS (Tailwind via CDN), and vanilla JS.
+- Modern, mobile-friendly, and fully static event site. All content is driven by JSON files for easy updates via pull request. No build step, no backend, no frameworks—just HTML, CSS (Tailwind via CDN), and vanilla JS.
 
 ## How to Update Speaker or Talk Data
 
