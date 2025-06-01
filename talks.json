@@ -19,8 +19,8 @@
   },
   {
     "id": "max-coming",
-    "title": "Coming Soon",
-    "description": "",
+    "title": "Domain-Driven Design: Manage Data With with Jakarta Data and Jakarta NoSQL",
+    "description": "Managing data access in Domain-Driven Design (DDD) applications can be challenging, especially when working with different database types, like relational and NoSQL. This talk explores how to simplify that complexity using the power of two modern Jakarta specifications: Jakarta NoSQL and Jakarta Data.\n\nJakarta NoSQL and Jakarta Data helps simplify data access, making it easier to implement domain-focused repositories, integrate ubiquitous language, and naturally align business semantics with your code.\n\nThis session is framework-agnostic but will showcase examples running on Quarkus, a cloud-native Java platform optimized for developer productivity. What you’ll walk away with:\n\n- A practical understanding of the difference between DAOs and domain-driven repositories.\n\n- How Jakarta NoSQL maps Java entities to NoSQL structures.\n\n- How Jakarta Data empowers expressive queries aligned with business logic.\n\n- How to apply these tools in modern Java apps to bridge the gap between code and business.",
     "language": "english",
     "time": "12:00",
     "date": "2025-06-03",
