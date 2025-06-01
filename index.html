@@ -623,7 +623,7 @@
                     tdSession.innerHTML =
                         `${talk.title} <span class="session-language">(${talk.language})</span>` +
                         (isExpandable ? ` <span class="arrow-icon">⤵</span>
-                        <div id="${talk.id}" class="talk-description">$${formatDescription(talk.description)}</div>` : '');
+                        <div id="${talk.id}" class="talk-description">${formatDescription(talk.description)}</div>` : '');
                     // Speakers
                     const tdSpeaker = document.createElement('td');
                     tdSpeaker.className = 'table-cell table-cell-speaker';
