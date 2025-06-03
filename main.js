@@ -1,97 +1,7 @@
-// Speaker Carousel Controller
-class SpeakerCarousel {
-    constructor() {
-        this.container = document.getElementById('speakerCarousel');
-        this.track = this.container?.querySelector('.carousel-track');
-    }
-
-    populate(speakers) {
-        if (!this.track || !speakers) return;
-
-        // Get confirmed speakers only
-        const confirmedSpeakers = Object.entries(speakers)
-            .filter(([id, speaker]) => speaker.confirmed === true)
-            .slice(0, 12); // Limit to 12 speakers for smooth animation
-
-        if (confirmedSpeakers.length === 0) {
-            this.track.innerHTML = '<div style="color: rgba(255,255,255,0.7); text-align: center; padding: 2rem;">Speakers coming soon...</div>';
-            return;
-        }
-
-        // Duplicate speakers for seamless loop
-        const duplicatedSpeakers = [...confirmedSpeakers, ...confirmedSpeakers, ...confirmedSpeakers];
-        
-        const speakersHTML = duplicatedSpeakers.map(([id, speaker]) => {
-            return `
-                <div class="carousel-speaker" data-speaker-id="${id}">
-                    <img 
-                        src="${speaker.image}" 
-                        alt="${speaker.name}"
-                        class="carousel-speaker-image"
-                        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                    >
-                    <div class="carousel-speaker-fallback" style="display: none;">
-                        ${Utils.getInitials(speaker.name)}
-                    </div>
-                    <div class="carousel-speaker-info">
-                        <div class="carousel-speaker-name">${Utils.sanitizeHTML(speaker.name)}</div>
-                        <div class="carousel-speaker-title">${Utils.sanitizeHTML(speaker.title)}</div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        this.track.innerHTML = speakersHTML;
-        this.bindEvents();
-    }
-
-    bindEvents() {
-        // Carousel speakers are no longer clickable
-        // Removed click events for carousel speakers
-    }
-}// Image Preloader
-class ImagePreloader {
-    constructor() {
-        this.loadedImages = new Set();
-        this.preloadQueue = [];
-    }
-
-    preloadImage(src) {
-        return new Promise((resolve, reject) => {
-            if (this.loadedImages.has(src)) {
-                resolve(src);
-                return;
-            }
-
-            const img = new Image();
-            img.onload = () => {
-                this.loadedImages.add(src);
-                resolve(src);
-            };
-            img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
-            img.src = src;
-        });
-    }
-
-    async preloadSpeakerImages(speakers) {
-        const imagePromises = Object.values(speakers)
-            .filter(speaker => speaker.confirmed && speaker.image)
-            .map(speaker => this.preloadImage(speaker.image));
-
-        try {
-            await Promise.allSettled(imagePromises);
-            console.log('Speaker images preloaded');
-        } catch (error) {
-            console.warn('Some speaker images failed to preload:', error);
-        }
-    }
-
-    isImageLoaded(src) {
-        return this.loadedImages.has(src);
-    }
-}/**
+/**
  * SouJava 30-Year Celebration Week - Event Application
  * Optimized JavaScript with Sessionize API integration
+ * FIXES: Proper session scheduling, timezone handling, and data validation
  */
 
 // Application State
@@ -148,6 +58,34 @@ const Utils = {
             }).format(date);
         } catch (error) {
             console.error('Error formatting date:', error);
+            return dateString;
+        }
+    },
+
+    parseSessionizeTime(isoString) {
+        try {
+            const date = new Date(isoString);
+            return {
+                date: date.toISOString().split('T')[0],
+                time: date.toTimeString().split(' ')[0].substring(0, 5),
+                dayName: date.toLocaleDateString('en-US', { weekday: 'long' }),
+                timestamp: date.getTime()
+            };
+        } catch (error) {
+            console.error('Error parsing time:', error);
+            return null;
+        }
+    },
+
+    formatDateHeader(dateString) {
+        try {
+            const date = new Date(dateString + 'T00:00:00'); // Add time to ensure correct parsing
+            const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+            const monthDay = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+            console.log('formatDateHeader:', dateString, '->', dayName, monthDay);
+            return `${dayName}, ${monthDay}`;
+        } catch (error) {
+            console.error('Error formatting date header:', error);
             return dateString;
         }
     },
@@ -222,6 +160,9 @@ const CacheManager = {
 // Data Loader with Sessionize API
 class DataLoader {
     static async loadEventData() {
+        // Clear cache to force fresh data with new endpoint
+        CacheManager.clear(CONFIG.CACHE_KEY);
+        
         // Try cache first
         const cachedData = CacheManager.get(CONFIG.CACHE_KEY);
         if (cachedData) {
@@ -268,13 +209,11 @@ class DataLoader {
         // Transform speakers
         if (sessionizeData.speakers) {
             sessionizeData.speakers.forEach(speaker => {
-                const speakerId = speaker.id;
-                transformed.speakers[speakerId] = {
+                transformed.speakers[speaker.id] = {
                     name: speaker.fullName,
                     title: speaker.tagLine || '',
                     bio: speaker.bio || '',
                     image: speaker.profilePicture || '',
-                    confirmed: true,
                     social: this.extractSocialLinks(speaker.links)
                 };
             });
@@ -293,47 +232,41 @@ class DataLoader {
             });
         }
 
-        // Since sessions don't have dates, create a mock schedule
-        // Group sessions by a default date range (June 16-20, 2025)
-        const eventDates = [
-            { date: '2025-06-16', dayName: 'Monday', time: '11:30' },
-            { date: '2025-06-17', dayName: 'Tuesday', time: '12:00' },
-            { date: '2025-06-18', dayName: 'Wednesday', time: '12:30' },
-            { date: '2025-06-19', dayName: 'Thursday', time: '13:00' },
-            { date: '2025-06-20', dayName: 'Friday', time: '13:30' }
-        ];
-
-        // Transform sessions
-        if (sessionizeData.sessions) {
+        // Process sessions with actual timing data
+        if (sessionizeData.sessions && sessionizeData.sessions.length > 0) {
             const validSessions = sessionizeData.sessions.filter(session => 
                 session.title && 
-                session.title !== 'Session Details Coming Soon' &&
-                session.status === 'Accepted'
+                session.startsAt &&
+                (!session.status || session.status === 'Accepted')
             );
 
-            console.log('Valid sessions:', validSessions.length);
-
-            validSessions.forEach((session, index) => {
-                const dayIndex = index % eventDates.length;
-                const eventDate = eventDates[dayIndex];
+            console.log('Processing', validSessions.length, 'valid sessions with timing data');
+            
+            validSessions.forEach(session => {
+                const timeInfo = Utils.parseSessionizeTime(session.startsAt);
+                if (!timeInfo) return;
                 
                 const transformedSession = {
                     id: session.id.toString(),
-                    time: eventDate.time,
-                    duration: 45,
-                    title: session.title || '',
+                    time: timeInfo.time,
+                    title: session.title,
                     description: session.description || '',
                     language: this.getLanguageFromCategories(session.categoryItems, categoryLookup),
                     type: this.getTypeFromCategories(session.categoryItems, categoryLookup),
-                    speakers: session.speakers || []
+                    speakers: session.speakers || [],
+                    startsAt: session.startsAt,
+                    endsAt: session.endsAt,
+                    timestamp: timeInfo.timestamp,
+                    roomId: session.roomId,
+                    room: sessionizeData.rooms?.find(r => r.id === session.roomId)?.name || ''
                 };
 
                 // Find or create day in schedule
-                let daySchedule = transformed.schedule.find(day => day.date === eventDate.date);
+                let daySchedule = transformed.schedule.find(day => day.date === timeInfo.date);
                 if (!daySchedule) {
                     daySchedule = {
-                        date: eventDate.date,
-                        dayName: eventDate.dayName,
+                        date: timeInfo.date,
+                        dayName: timeInfo.dayName,
                         sessions: []
                     };
                     transformed.schedule.push(daySchedule);
@@ -342,6 +275,12 @@ class DataLoader {
                 daySchedule.sessions.push(transformedSession);
             });
         }
+
+        // Sort schedule by date and sessions by time
+        transformed.schedule.sort((a, b) => new Date(a.date) - new Date(b.date));
+        transformed.schedule.forEach(day => {
+            day.sessions.sort((a, b) => a.timestamp - b.timestamp);
+        });
 
         console.log('Transformed data:', transformed);
         return transformed;
@@ -364,6 +303,8 @@ class DataLoader {
     }
 
     static getLanguageFromCategories(categoryItems, categoryLookup) {
+        if (!categoryItems || !Array.isArray(categoryItems)) return 'English';
+        
         for (const itemId of categoryItems) {
             const category = categoryLookup[itemId];
             if (category && category.category === 'Language') {
@@ -374,32 +315,109 @@ class DataLoader {
     }
 
     static getTypeFromCategories(categoryItems, categoryLookup) {
+        if (!categoryItems || !Array.isArray(categoryItems)) return 'talk';
+        
         for (const itemId of categoryItems) {
             const category = categoryLookup[itemId];
             if (category && category.category === 'Type') {
-                return category.name.toLowerCase().replace(' ', '');
+                return category.name.toLowerCase().replace(/\s+/g, '');
             }
         }
         return 'talk'; // default
     }
+}
 
-    static detectLanguage(title, description) {
-        const text = `${title} ${description}`.toLowerCase();
-        const portugueseKeywords = ['português', 'brasil', 'desenvolvimento', 'programação', 'aplicações', 'microsserviços'];
-        const hasPortuguese = portugueseKeywords.some(keyword => text.includes(keyword));
-        return hasPortuguese ? 'Portuguese' : 'English';
+// Speaker Carousel Controller
+class SpeakerCarousel {
+    constructor() {
+        this.container = document.getElementById('speakerCarousel');
+        this.track = this.container?.querySelector('.carousel-track');
     }
 
-    static detectSessionType(title, description) {
-        const text = `${title} ${description}`.toLowerCase();
-        if (text.includes('kickoff') || text.includes('opening') || text.includes('welcome')) return 'opening';
-        if (text.includes('roundtable') || text.includes('panel') || text.includes('discussion')) return 'roundtable';
-        return 'talk';
+    populate(speakers) {
+        if (!this.track || !speakers) return;
+
+        // Get all speakers and limit for carousel
+        const availableSpeakers = Object.entries(speakers)
+            .slice(0, 12); // Limit to 12 speakers for smooth animation
+
+        if (availableSpeakers.length === 0) {
+            this.track.innerHTML = '<div style="color: rgba(255,255,255,0.7); text-align: center; padding: 2rem;">Speakers coming soon...</div>';
+            return;
+        }
+
+        // Duplicate speakers for seamless loop (double the list)
+        const duplicatedSpeakers = [...availableSpeakers, ...availableSpeakers];
+        
+        const speakersHTML = duplicatedSpeakers.map(([id, speaker]) => {
+            return `
+                <a href="#speakers" class="carousel-speaker" data-speaker-id="${id}">
+                    <img 
+                        src="${speaker.image}" 
+                        alt="${speaker.name}"
+                        class="carousel-speaker-image"
+                        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                    >
+                    <div class="carousel-speaker-fallback" style="display: none;">
+                        ${Utils.getInitials(speaker.name)}
+                    </div>
+                    <div class="carousel-speaker-info">
+                        <div class="carousel-speaker-name">${Utils.sanitizeHTML(speaker.name)}</div>
+                        <div class="carousel-speaker-title">${Utils.sanitizeHTML(speaker.title)}</div>
+                    </div>
+                </a>
+            `;
+        }).join('');
+
+        this.track.innerHTML = speakersHTML;
+        this.bindEvents();
     }
 
-    static getDayName(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { weekday: 'long' });
+    bindEvents() {
+        // Carousel speakers are no longer clickable
+        // Removed click events for carousel speakers
+    }
+}
+
+// Image Preloader
+class ImagePreloader {
+    constructor() {
+        this.loadedImages = new Set();
+        this.preloadQueue = [];
+    }
+
+    preloadImage(src) {
+        return new Promise((resolve, reject) => {
+            if (this.loadedImages.has(src)) {
+                resolve(src);
+                return;
+            }
+
+            const img = new Image();
+            img.onload = () => {
+                this.loadedImages.add(src);
+                resolve(src);
+            };
+            img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
+            img.src = src;
+        });
+    }
+
+    async preloadSpeakerImages(speakers) {
+        const imagePromises = Object.values(speakers)
+            .filter(speaker => speaker.image)
+            .map(speaker => this.preloadImage(speaker.image));
+
+        try {
+            await Promise.allSettled(imagePromises);
+            console.log('Speaker images preloaded');
+        } catch (error) {
+            console.warn('Some speaker images failed to preload:', error);
+        }
+    }
+
+    isImageLoaded(src) {
+        return this.loadedImages.has(src);
     }
 }
 
@@ -407,7 +425,6 @@ class DataLoader {
 class ModalHandler {
     constructor() {
         this.speakerModal = document.getElementById('speakerModal');
-        this.sessionModal = document.getElementById('sessionModal');
         this.bindEvents();
     }
 
@@ -434,34 +451,13 @@ class ModalHandler {
     showSpeaker(speakerId) {
         const speaker = AppState.eventData?.speakers[speakerId];
         
-        if (!speaker || speaker.confirmed !== true) {
-            console.warn('Speaker not found or not confirmed:', speakerId);
+        if (!speaker) {
+            console.warn('Speaker not found:', speakerId);
             return;
         }
 
         this.populateSpeakerContent(speaker);
         this.showModal(this.speakerModal);
-    }
-
-    showSession(sessionId) {
-        const session = this.findSessionById(sessionId);
-        if (!session) {
-            console.error('Session not found:', sessionId);
-            return;
-        }
-
-        this.populateSessionContent(session);
-        this.showModal(this.sessionModal);
-    }
-
-    findSessionById(sessionId) {
-        for (const day of AppState.eventData.schedule) {
-            const session = day.sessions.find(s => s.id === sessionId);
-            if (session) {
-                return { ...session, date: day.date, dayName: day.dayName };
-            }
-        }
-        return null;
     }
 
     populateSpeakerContent(speaker) {
@@ -474,21 +470,21 @@ class ModalHandler {
         };
 
         if (elements.image) {
-            // Check if image is preloaded
-            if (app?.imagePreloader?.isImageLoaded(speaker.image)) {
-                elements.image.src = speaker.image;
-                elements.image.style.display = 'block';
-            } else {
-                elements.image.src = speaker.image;
-                elements.image.style.display = 'block';
-            }
+            elements.image.src = speaker.image;
             elements.image.alt = `Photo of ${speaker.name}`;
             elements.image.onerror = () => {
                 elements.image.style.display = 'none';
             };
         }
 
-        if (elements.name) elements.name.textContent = speaker.name;
+        if (elements.name) {
+            const isJavaChampion = speaker.name.includes('Barry Burd') || 
+                                  speaker.name.includes('Michael Redlich') || 
+                                  speaker.name.includes('Professor Isidro');
+            
+            elements.name.innerHTML = Utils.sanitizeHTML(speaker.name) + 
+                (isJavaChampion ? '<span class="java-champion-badge"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm19 2c0 1.11-.89 2-2 2H2c-1.11 0-2-.89-2-2v-1h24v1z"/></svg>Java Champion</span>' : '');
+        }
         if (elements.title) elements.title.textContent = speaker.title;
         if (elements.bio) elements.bio.innerHTML = Utils.sanitizeHTML(speaker.bio).replace(/\n/g, '<br>');
 
@@ -501,51 +497,6 @@ class ModalHandler {
                 });
             }
         }
-    }
-
-    populateSessionContent(session) {
-        const sessionDetails = document.getElementById('sessionDetails');
-        if (!sessionDetails) return;
-
-        const speakers = session.speakers.map(speakerId => {
-            const speaker = AppState.eventData.speakers[speakerId];
-            if (!speaker || !speaker.confirmed) return '';
-            
-            return `
-                <div class="session-speaker-item" onclick="modalHandler.showSpeaker('${speakerId}')">
-                    <img src="${speaker.image}" 
-                         alt="${speaker.name}"
-                         class="session-speaker-avatar"
-                         onerror="this.style.display='none';">
-                    <span class="session-speaker-name">${speaker.name}</span>
-                </div>
-            `;
-        }).join('');
-
-        const formattedTime = Utils.formatTime(session.time, session.date, AppState.currentTimezone);
-
-        sessionDetails.innerHTML = `
-            <div class="session-header">
-                <div class="session-time-info">
-                    <div class="session-day">${session.dayName}</div>
-                    <time class="session-time">${formattedTime}</time>
-                </div>
-                <div class="session-badges">
-                    <span class="badge badge-language">${session.language}</span>
-                    <span class="badge badge-type">${session.type}</span>
-                </div>
-            </div>
-            <h3 class="session-title">${session.title}</h3>
-            <div class="session-description">${Utils.sanitizeHTML(session.description || 'No description available.').replace(/\n/g, '<br>')}</div>
-            ${speakers ? `
-                <div class="session-speakers">
-                    <h4>Speakers</h4>
-                    <div class="session-speaker-list">
-                        ${speakers}
-                    </div>
-                </div>
-            ` : ''}
-        `;
     }
 
     createSocialLink(platform, url) {
@@ -628,12 +579,11 @@ class FilterController {
             speakerFilter.innerHTML = '<option value="">All Speakers</option>';
         }
 
-        // Only show confirmed speakers in filter
-        const confirmedSpeakers = Object.entries(AppState.eventData.speakers)
-            .filter(([id, speaker]) => speaker.confirmed === true)
+        // Show all speakers in filter
+        const allSpeakers = Object.entries(AppState.eventData.speakers)
             .sort(([,a], [,b]) => a.name.localeCompare(b.name));
 
-        confirmedSpeakers.forEach(([id, speaker]) => {
+        allSpeakers.forEach(([id, speaker]) => {
             const option = document.createElement('option');
             option.value = id;
             option.textContent = speaker.name;
@@ -698,11 +648,11 @@ class ScheduleRenderer {
             AppState.eventData.schedule.forEach((day, dayIndex) => {
                 scheduleHTML += `
                     <div class="day-group" data-day="${day.date}">
-                        <h3 class="day-header">${day.dayName}, ${Utils.formatDate(day.date)}</h3>
+                        <h3 class="day-header">${Utils.formatDateHeader(day.date)}</h3>
                 `;
                 
                 day.sessions.forEach(session => {
-                scheduleHTML += this.renderSession(session, day.date);
+                    scheduleHTML += this.renderSession(session, day.date);
                 });
 
                 scheduleHTML += '</div>';
@@ -728,29 +678,58 @@ class ScheduleRenderer {
                  data-speakers="${session.speakers.join(',')}"
                  data-type="${session.type}"
                  data-day="${date}">
-                <div class="session-time">${formattedTime}</div>
-                <div class="session-content">
-                    <h4 class="session-title">${Utils.sanitizeHTML(session.title)}</h4>
-                    ${session.description ? `<p class="session-description">${Utils.sanitizeHTML(session.description)}</p>` : ''}
-                    <div class="session-badges">
-                        <span class="badge badge-language">${session.language}</span>
-                        <span class="badge badge-type">${session.type}</span>
+                <div class="session-header" data-session-toggle="${session.id}">
+                    <div class="session-time">${formattedTime}</div>
+                    <div class="session-content">
+                        <h4 class="session-title">${Utils.sanitizeHTML(session.title)}</h4>
+                        <div class="session-badges">
+                            <span class="badge badge-language">${session.language}</span>
+                            <span class="badge badge-type">${session.type}</span>
+                        </div>
+                    </div>
+                    <div class="speakers-list">
+                        ${speakers}
+                    </div>
+                    <div class="session-expand-icon">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M7 10l5 5 5-5z"/>
+                        </svg>
                     </div>
                 </div>
-                <div class="speakers-list">
-                    ${speakers}
+                <div class="session-details" data-session-details="${session.id}">
+                    <div class="session-details-content">
+                        ${session.description ? `<div class="session-description">${Utils.sanitizeHTML(session.description)}</div>` : '<div class="session-description">No description available.</div>'}
+                        ${session.speakers.length > 0 ? `
+                            <div class="session-speakers-info">
+                                <h5>Speakers</h5>
+                                <div class="session-speakers-list">
+                                    ${this.renderSessionSpeakers(session.speakers, date)}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
                 </div>
             </div>
         `;
     }
 
-    renderSpeaker(speakerId) {
+    renderSpeaker(speakerData) {
+        // Handle null speakers
+        if (!speakerData) {
+            return `<div class="speaker-fallback">
+                ${Utils.getInitials('TBD')}
+            </div>`;
+        }
+        
+        // Handle both ID strings and speaker objects
+        const speakerId = typeof speakerData === 'string' ? speakerData : speakerData.id;
         const speaker = AppState.eventData.speakers[speakerId];
         
-        // Only render confirmed speakers
-        if (!speaker || speaker.confirmed !== true) {
+        // Handle missing speakers gracefully
+        if (!speaker) {
+            const fallbackName = typeof speakerData === 'object' && speakerData.name ? speakerData.name : 'Speaker';
             return `<div class="speaker-fallback" data-speaker-id="${speakerId}">
-                ${speakerId.substring(0, 2).toUpperCase()}
+                ${Utils.getInitials(fallbackName)}
             </div>`;
         }
 
@@ -768,7 +747,72 @@ class ScheduleRenderer {
         `;
     }
 
+    renderSessionSpeakers(speakers, date) {
+        return speakers.map(speakerData => {
+            // Handle null speakers
+            if (!speakerData) {
+                return `
+                    <div class="session-speaker-detail">
+                        <div class="session-speaker-fallback">
+                            ${Utils.getInitials('TBD')}
+                        </div>
+                        <div class="session-speaker-info">
+                            <div class="session-speaker-name">To Be Determined</div>
+                            <div class="session-speaker-title">Speaker</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            const speakerId = typeof speakerData === 'string' ? speakerData : speakerData.id;
+            const speaker = AppState.eventData.speakers[speakerId];
+            
+            if (!speaker) {
+                // Use speaker data from session if available
+                const name = typeof speakerData === 'object' && speakerData.name ? speakerData.name : 'Speaker';
+                return `
+                    <div class="session-speaker-detail" data-speaker-id="${speakerId}">
+                        <div class="session-speaker-fallback">
+                            ${Utils.getInitials(name)}
+                        </div>
+                        <div class="session-speaker-info">
+                            <div class="session-speaker-name">${Utils.sanitizeHTML(name)}</div>
+                            <div class="session-speaker-title">Speaker</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="session-speaker-detail" data-speaker-id="${speakerId}">
+                    <img src="${speaker.image}" 
+                         alt="${speaker.name}"
+                         class="session-speaker-avatar"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="session-speaker-fallback" style="display: none;">
+                        ${Utils.getInitials(speaker.name)}
+                    </div>
+                    <div class="session-speaker-info">
+                        <div class="session-speaker-name">${Utils.sanitizeHTML(speaker.name)}</div>
+                        <div class="session-speaker-title">${Utils.sanitizeHTML(speaker.title)}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
     bindEvents() {
+        // Session toggle events
+        this.container.addEventListener('click', (e) => {
+            const toggleElement = e.target.closest('[data-session-toggle]');
+            if (toggleElement) {
+                const sessionId = toggleElement.dataset.sessionToggle;
+                this.toggleSessionDetails(sessionId);
+                return;
+            }
+        });
+
+        // Speaker avatar clicks
         this.container.addEventListener('click', (e) => {
             if (e.target.classList.contains('speaker-avatar') || e.target.classList.contains('speaker-fallback')) {
                 const speakerId = e.target.dataset.speakerId;
@@ -778,15 +822,52 @@ class ScheduleRenderer {
             }
         });
 
+        // Session speaker detail clicks
         this.container.addEventListener('click', (e) => {
-            const sessionElement = e.target.closest('.session');
-            if (sessionElement && !e.target.closest('.speakers-list')) {
-                const sessionId = sessionElement.dataset.sessionId;
-                if (sessionId) {
-                    this.modalHandler.showSession(sessionId);
+            const speakerDetail = e.target.closest('.session-speaker-detail');
+            if (speakerDetail) {
+                const speakerId = speakerDetail.dataset.speakerId;
+                if (speakerId) {
+                    this.modalHandler.showSpeaker(speakerId);
                 }
             }
         });
+    }
+
+    toggleSessionDetails(sessionId) {
+        const sessionElement = document.querySelector(`[data-session-id="${sessionId}"]`);
+        const detailsElement = document.querySelector(`[data-session-details="${sessionId}"]`);
+        const expandIcon = sessionElement?.querySelector('.session-expand-icon svg');
+        
+        if (!sessionElement || !detailsElement) return;
+        
+        const isExpanded = sessionElement.classList.contains('expanded');
+        
+        if (isExpanded) {
+            // Collapse
+            sessionElement.classList.remove('expanded');
+            detailsElement.style.maxHeight = '0';
+            if (expandIcon) {
+                expandIcon.style.transform = 'rotate(0deg)';
+            }
+        } else {
+            // Expand
+            sessionElement.classList.add('expanded');
+            
+            // Reset maxHeight to get accurate scrollHeight
+            detailsElement.style.maxHeight = 'none';
+            const height = detailsElement.scrollHeight;
+            detailsElement.style.maxHeight = '0';
+            
+            // Trigger reflow and set the proper height
+            requestAnimationFrame(() => {
+                detailsElement.style.maxHeight = height + 'px';
+            });
+            
+            if (expandIcon) {
+                expandIcon.style.transform = 'rotate(180deg)';
+            }
+        }
     }
 
     applyFilters() {
@@ -800,11 +881,10 @@ class ScheduleRenderer {
             if (speaker && !sessionElement.dataset.speakers.split(',').includes(speaker)) visible = false;
             if (type && sessionElement.dataset.type !== type) visible = false;
 
-            sessionElement.style.display = visible ? 'grid' : 'none';
+            sessionElement.style.display = visible ? 'block' : 'none';
         });
 
         document.querySelectorAll('.day-group').forEach(dayGroup => {
-            const dayDate = dayGroup.dataset.day;
             const visibleSessions = dayGroup.querySelectorAll('.session:not([style*="display: none"])');
             dayGroup.style.display = visibleSessions.length > 0 ? 'block' : 'none';
         });
@@ -812,7 +892,6 @@ class ScheduleRenderer {
 
     updateTimezone(timezone) {
         AppState.currentTimezone = timezone;
-        // Only update times, don't re-render entire schedule
         this.updateSessionTimes();
     }
 
@@ -859,11 +938,15 @@ class ScheduleRenderer {
     }
 }
 
-// Speakers Renderer
+// Speakers Renderer with Incremental Loading
 class SpeakersRenderer {
     constructor(modalHandler) {
         this.container = document.getElementById('speakers-container');
         this.modalHandler = modalHandler;
+        this.loadedCount = 0;
+        this.batchSize = 12; // Load 12 speakers at a time
+        this.allSpeakers = [];
+        this.isLoading = false;
     }
 
     render() {
@@ -873,25 +956,128 @@ class SpeakersRenderer {
         }
 
         try {
-            // Only show confirmed speakers
-            const confirmedSpeakers = Object.entries(AppState.eventData.speakers)
-                .filter(([id, speaker]) => speaker.confirmed === true)
+            // Remove hardcoded confirmed filter - show all speakers
+            this.allSpeakers = Object.entries(AppState.eventData.speakers)
                 .sort(([,a], [,b]) => a.name.localeCompare(b.name));
 
-            if (confirmedSpeakers.length === 0) {
-                this.renderError('No confirmed speakers available');
+            if (this.allSpeakers.length === 0) {
+                this.renderError('No speakers available');
                 return;
             }
 
-            const speakersHTML = confirmedSpeakers
-                .map(([id, speaker]) => this.renderSpeakerCard(id, speaker))
-                .join('');
-
-            this.container.innerHTML = speakersHTML;
+            // Reset state
+            this.loadedCount = 0;
+            this.container.innerHTML = '';
+            
+            // Load initial batch
+            this.loadNextBatch();
+            
+            // Setup incremental loading if there are more speakers
+            if (this.allSpeakers.length > this.batchSize) {
+                this.setupIncrementalLoading();
+            }
+            
             this.bindEvents();
         } catch (error) {
             console.error('Error rendering speakers:', error);
             this.renderError('Error displaying speakers');
+        }
+    }
+
+    loadNextBatch() {
+        if (this.isLoading || this.loadedCount >= this.allSpeakers.length) return;
+        
+        this.isLoading = true;
+        const nextBatch = this.allSpeakers.slice(this.loadedCount, this.loadedCount + this.batchSize);
+        
+        const batchHTML = nextBatch
+            .map(([id, speaker]) => this.renderSpeakerCard(id, speaker))
+            .join('');
+        
+        // Initial load: Instant rendering
+        if (this.loadedCount === 0) {
+            this.container.innerHTML = batchHTML;
+        } else {
+            // Load More: Smooth staggered animation with faster timing
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = batchHTML;
+            
+            Array.from(tempDiv.children).forEach((card, index) => {
+                setTimeout(() => {
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(20px)';
+                    this.container.appendChild(card);
+                    
+                    // Trigger animation
+                    requestAnimationFrame(() => {
+                        card.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0)';
+                    });
+                }, index * 20); // Reduced from 100ms to 20ms for faster load more
+            });
+        }
+        
+        this.loadedCount += nextBatch.length;
+        this.isLoading = false;
+        
+        // Update or remove load more button
+        this.updateLoadMoreButton();
+    }
+    
+    setupIncrementalLoading() {
+        // Add load more button
+        const loadMoreButton = document.createElement('div');
+        loadMoreButton.className = 'load-more-container';
+        loadMoreButton.innerHTML = `
+            <button class="btn btn-outline load-more-btn" id="loadMoreSpeakers">
+                Load More Speakers
+                <span class="speakers-count">(${this.allSpeakers.length - this.batchSize} remaining)</span>
+            </button>
+        `;
+        
+        this.container.parentNode.appendChild(loadMoreButton);
+        
+        // Bind load more event
+        document.getElementById('loadMoreSpeakers')?.addEventListener('click', () => {
+            this.loadNextBatch();
+        });
+        
+        // Optional: Auto-load on scroll (intersection observer)
+        this.setupAutoLoad(loadMoreButton);
+    }
+    
+    setupAutoLoad(loadMoreContainer) {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && !this.isLoading) {
+                    this.loadNextBatch();
+                }
+            });
+        }, {
+            threshold: 0.1,
+            rootMargin: '200px'
+        });
+        
+        observer.observe(loadMoreContainer);
+    }
+    
+    updateLoadMoreButton() {
+        const loadMoreContainer = document.querySelector('.load-more-container');
+        const loadMoreBtn = document.getElementById('loadMoreSpeakers');
+        const remainingCount = this.allSpeakers.length - this.loadedCount;
+        
+        if (remainingCount <= 0) {
+            // All speakers loaded
+            if (loadMoreContainer) {
+                loadMoreContainer.remove();
+            }
+        } else if (loadMoreBtn) {
+            // Update remaining count
+            const countSpan = loadMoreBtn.querySelector('.speakers-count');
+            if (countSpan) {
+                countSpan.textContent = `(${remainingCount} remaining)`;
+            }
         }
     }
 
@@ -916,9 +1102,11 @@ class SpeakersRenderer {
                 <div class="speaker-card-fallback" style="display: none;">
                     ${Utils.getInitials(speaker.name)}
                 </div>
-                <h3 class="speaker-name">${Utils.sanitizeHTML(speaker.name)}</h3>
-                <p class="speaker-title">${Utils.sanitizeHTML(speaker.title)}</p>
-                ${socialLinks ? `<div class="speaker-social">${socialLinks}</div>` : ''}
+                <div class="speaker-info">
+                    <h3 class="speaker-name">${Utils.sanitizeHTML(speaker.name)}</h3>
+                    <p class="speaker-title">${Utils.sanitizeHTML(speaker.title)}</p>
+                    ${socialLinks ? `<div class="speaker-social">${socialLinks}</div>` : ''}
+                </div>
             </div>
         `;
     }
