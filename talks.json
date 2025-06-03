@@ -63,9 +63,9 @@
     "speakers": ["tim"]
   },
   {
-    "id": "sebastien-coming",
-    "title": "Coming Soon",
-    "description": "",
+    "id": "sebastien-talk",
+    "title": "The Outer Limits : building virtual civilisations with Quarkus and LLMs",
+    "description": "I remember that when Siri appeared on iPhones, the first thing I wanted to try was to make 2 Siri talk to each other; it wasn't very convincing. It was during the same period when Second Life was very popular, and I spent many hours there. Anyway, virtual worlds with autonomous agents have always fascinated me.However, it was very complex to develop such architecture oneself unless you were an expert in artificial intelligence and machine learning. But the surge of generative AI has changed the game by bringing a plethora of libraries that abstract all this complexity while offering unprecedented artificial intelligence power. In this talk, I will present how I managed to develop a virtual civilisation that created its own traditions, games, but also fauna and flora. All this starting from a simple context definition. Challenges such as managing the memories of each avatar, inter-agent interaction have been greatly facilitated by the use of libraries like Langchain4j, as well as the Quarkus stack. I invite you to discover this exciting world that led me to many sleepless nights because it was so thrilling and outside my comfort zone. A few slides but mostly a lot of live coding and the opportunity to interact during the presentation with this virtual civilisation.",
     "language": "english",
     "time": "13:00",
     "date": "2025-06-05",
