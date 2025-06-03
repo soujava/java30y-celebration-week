@@ -3,734 +3,272 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Join Java Champions for SouJava's 30-Year Celebration Week - Free online conference June 2-6, 2025">
+    <meta name="description" content="Join Java Champions for SouJava's 30-Year Celebration Week - Free online conference June 16-20, 2025">
+    <title>Java 30Y #CelebrationWeek</title>
+    
+    <!-- Performance Optimizations -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- SEO Meta Tags -->
     <meta property="og:title" content="SouJava 30-Year Celebration Week">
     <meta property="og:description" content="Free online Java conference with Java Champions from around the globe">
     <meta property="og:type" content="website">
-    <meta property="og:image" content="duke-30y.png">
-    <meta name="robots" content="index, follow">
+    <meta property="og:image" content="./sm/duke-30y.png">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="duke-30y.png">
-    <title>SouJava 30-Year Celebration Week</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/timezone.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/plugin/utc.js"></script>
-    <style>
-        :root {
-            --primary: #F77347;
-            --dark-blue: #16293F;
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Event",
+        "name": "SouJava 30-Year Celebration Week",
+        "description": "Free online Java conference with Java Champions from around the globe",
+        "startDate": "2025-06-16T11:30:00-03:00",
+        "endDate": "2025-06-20T14:00:00-03:00",
+        "eventStatus": "https://schema.org/EventScheduled",
+        "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
+        "location": {
+            "@type": "VirtualLocation",
+            "url": "https://youtube.com/@soujava"
+        },
+        "organizer": {
+            "@type": "Organization",
+            "name": "SouJava"
+        },
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD",
+            "availability": "https://schema.org/InStock"
         }
-        .speaker-card {
-            transition: transform 0.3s ease;
-        }
-        .speaker-card:hover {
-            transform: translateY(-5px);
-        }
-        .timezone-btn.active {
-            background-color: var(--primary);
-            color: white;
-        }
-        .watch-btn {
-            transition: all 0.3s ease;
-        }
-        .watch-btn:hover {
-            transform: translateY(-2px);
-        }
-        .day-watch-btn {
-            float: right;
-            margin-top: -2px;
-            font-size: 0.75rem;
-            padding: 0.25rem 0.5rem;
-            background-color: #f3f4f6;
-            color: #6b7280;
-            border: 1px solid #e5e7eb;
-        }
-        .schedule-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        .timezone-btn {
-            font-size: 0.875rem;
-            padding: 0.25rem 0.75rem;
-            border: 1px solid var(--primary);
-            background-color: transparent;
-            color: var(--primary);
-            transition: all 0.2s;
-        }
-        .timezone-btn:hover {
-            background-color: var(--primary);
-            color: white;
-        }
-        .timezone-btn.active {
-            background-color: var(--primary);
-            color: white;
-        }
-        .stream-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background-color: var(--primary);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-        .stream-btn:hover {
-            background-color: #e05a2d;
-            transform: translateY(-1px);
-        }
-        .stream-btn svg {
-            width: 1.25rem;
-            height: 1.25rem;
-        }
-        .speaker-popup {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-        .speaker-popup.active {
-            display: flex;
-            animation: fadeIn 0.3s ease;
-        }
-        .speaker-popup-content {
-            background: white;
-            padding: 2rem;
-            border-radius: 0.5rem;
-            max-width: 500px;
-            width: 90%;
-            position: relative;
-            animation: slideIn 0.3s ease;
-        }
-        .speaker-popup-close {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            cursor: pointer;
-            color: #6b7280;
-            transition: color 0.2s;
-        }
-        .speaker-popup-close:hover {
-            color: var(--primary);
-        }
-        .speaker-profile {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            cursor: pointer;
-        }
-        .speaker-profile:hover .speaker-name {
-            color: var(--primary);
-        }
-        .speaker-avatar {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-        .talk-description {
-            display: none;
-            margin-top: 0.5rem;
-            padding: 1rem;
-            background: #f9fafb;
-            border-radius: 0.375rem;
-            font-size: 0.875rem;
-            line-height: 1.5;
-            color: #4b5563;
-        }
-        .talk-description.active {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
-        .info-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 1.25rem;
-            height: 1.25rem;
-            border-radius: 50%;
-            background: #e5e7eb;
-            color: #6b7280;
-            font-size: 0.75rem;
-            margin-left: 0.5rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .info-icon:hover {
-            background: var(--primary);
-            color: white;
-        }
-        .expandable-row {
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .expandable-row:hover {
-            background-color: #f9fafb;
-        }
-        .bio-content {
-            max-height: 200px;
-            overflow-y: auto;
-            padding-right: 1rem;
-            line-height: 1.4;
-            scrollbar-width: thin;
-            scrollbar-color: #e5e7eb #f9fafb;
-            white-space: pre-line;
-        }
-        .bio-content::-webkit-scrollbar {
-            width: 6px;
-        }
-        .bio-content::-webkit-scrollbar-track {
-            background: #f9fafb;
-            border-radius: 3px;
-        }
-        .bio-content::-webkit-scrollbar-thumb {
-            background-color: #e5e7eb;
-            border-radius: 3px;
-        }
-        .social-links {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            margin-top: 1rem;
-        }
-        .social-link {
-            color: #6b7280;
-            transition: color 0.2s;
-        }
-        .social-link:hover {
-            color: var(--primary);
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        @keyframes slideIn {
-            from { transform: translateY(-20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        .footer-link {
-            color: #ffffff;
-            text-decoration: underline;
-            text-decoration-color: var(--primary);
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        .footer-link:hover {
-            color: var(--primary);
-            text-decoration-color: #ffffff;
-        }
-        footer {
-            background: var(--dark-blue);
-            padding: 2rem 0;
-            text-align: center;
-            width: 100%;
-            margin-top: 3rem;
-        }
-        .footer-main {
-            color: #fff;
-            font-size: 1.25rem;
-            font-weight: 400;
-            margin-bottom: 0.25rem;
-        }
-        .footer-org {
-            font-weight: 700;
-        }
-        .footer-support {
-            color: #d1d5db;
-            font-size: 1rem;
-            font-style: italic;
-            font-weight: 400;
-        }
-        .footer-supporter {
-            font-weight: 700;
-            color: #fff;
-            font-style: normal;
-        }
-        .day-header {
-            background-color: #f3f4f6;
-            font-weight: 600;
-            color: #1f2937;
-        }
-        .table-cell {
-            padding: 0.75rem 1rem;
-        }
-        .table-cell-time {
-            width: 80px;
-        }
-        .table-cell-session {
-            min-width: 400px;
-        }
-        .table-cell-speaker {
-            min-width: 200px;
-        }
-        .session-language {
-            font-style: italic;
-            color: #6b7280;
-            font-size: 0.875rem;
-            margin-left: 0.5rem;
-        }
-        @media (max-width: 640px) {
-            .table-cell-session {
-                min-width: 250px;
-                font-size: 0.875rem;
-            }
-            .speaker-popup-content {
-                padding: 1rem;
-                margin: 1rem;
-                width: 95%;
-            }
-            .schedule-header {
-                flex-direction: column;
-                gap: 1rem;
-                align-items: flex-start;
-            }
-        }
-        .arrow-icon {
-            font-size: 1.25rem;
-            vertical-align: middle;
-            color: #6b7280;
-            transition: color 0.2s;
-            cursor: pointer;
-        }
-        .expandable-row:hover .arrow-icon,
-        .expandable-row .arrow-icon.active {
-            color: var(--primary);
-        }
-    </style>
+    }
+    </script>
+
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-gray-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-6">
-        <!-- Header -->
-        <header class="text-center">
-            <h1 class="text-4xl md:text-5xl font-bold text-[#16293F] mb-2">SouJava 30-Year Celebration Week</h1>
-            <p class="text-xl text-gray-600 mb-4">Join brilliant speakers from around the globe for a week of free Java learning</p>
-            <div class="inline-block bg-[#F77347] text-[#16293F] px-6 py-2 rounded-full font-semibold mb-4">June 2-6, 2025</div>
-            <a href="https://soujava.dev/30y-celebration-week" class="inline-block bg-[#F77347] text-white px-8 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors text-lg">
-                Register Now
-            </a>
-        </header>
 
-        <!-- Schedule Section -->
-        <section class="mb-8">
-            <div class="schedule-header flex justify-between items-center mb-6">
-                <h2 class="text-3xl font-bold text-[#16293F]">Schedule</h2>
-                <a href="https://soujava.dev/30y-celebration-week" target="_blank" class="stream-btn flex items-center gap-2">
-                    <svg viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l6-4.5-6-4.5v9z"/>
-                    </svg>
-                    Save your spot
-                </a>
+<body>
+    <!-- Skip Link for Accessibility -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="container">
+            <div class="nav-content">
+                <div class="nav-brand">
+                    <span>Java 30Y #CelebrationWeek</span>
+                </div>
+                <div class="nav-links">
+                    <a href="#" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;">Home</a>
+                    <a href="#agenda">Agenda</a>
+                    <a href="#speakers">Speakers</a>
+                    <a href="https://sessionize.com/sjcelebration-c4p/" target="_blank" rel="noopener">Call for Papers <span class="material-icons">open_in_new</span></a>
+                    <a href="https://soujava.dev/30y-celebration-week" target="_blank" rel="noopener" class="nav-register">Register</a>
+                </div>
+                <button class="nav-toggle" aria-label="Toggle navigation">
+                    <span>☰</span>
+                </button>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full border-collapse">
-                    <thead>
-                        <tr class="bg-gray-100">
-                            <th class="table-cell table-cell-time text-left text-sm font-semibold text-gray-600">Time</th>
-                            <th class="table-cell table-cell-session text-left text-sm font-semibold text-gray-600">Session</th>
-                            <th class="table-cell table-cell-speaker text-left text-sm font-semibold text-gray-600">Speaker</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        <!-- Monday -->
-                        <tr>
-                            <td class="day-header" colspan="3">
-                                Monday, June 2
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="table-cell table-cell-time font-medium text-[#F77347]" data-time="11:30">11:30</td>
-                            <td class="table-cell table-cell-session">
-                                Event Opening <span class="session-language">(english)</span>
-                            </td>
-                            <td class="table-cell table-cell-speaker">
-                                <div class="speaker-profile" data-speaker="karina">
-                                    <img src="speakers-pics/karina.png" alt="Karina Varela" class="speaker-avatar">
-                                    <span class="speaker-name">Karina Varela</span>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr class="expandable-row" onclick="toggleDescription('alex-talk')">
-                            <td class="table-cell table-cell-time font-medium text-[#F77347]" data-time="11:30">11:30</td>
-                            <td class="table-cell table-cell-session">
-                                Beyond LLMs: Architecting Enterprise AI with Symbolic Reasoning and Executable Knowledge Models <span class="session-language">(english)</span>
-                                <span class="arrow-icon">⤵</span>
-                                <div id="alex-talk" class="talk-description">
-                                    As Generative AI reshapes modern software, the enterprise faces a new challenge: how to adopt LLMs while ensuring predictable, explainable, and compliant outcomes. This session outlines a practical strategy that combines the flexibility of LLMs with the structure of Symbolic AI to meet enterprise requirements.<br><br>A very powerful approach is leveraging Knowledge Representation and Reasoning (KRR) through standards like DMN and BPMN, which act as both knowledge models and runnable artifacts. Backed by the open-source Apache KIE (including Drools and jBPM engines), these models provide transparent, auditable, and deterministic behavior.<br><br>This hybrid architecture combines the strengths of Statistical and Symbolic AI—unlocking innovation while delivering the control enterprises demand. If you're designing systems that must reason, comply, and explain — not just predict — this session will help you confidently move from experimentation to production.
-                                </div>
-                            </td>
-                            <td class="table-cell table-cell-speaker">
-                                <div class="speaker-profile" data-speaker="alex">
-                                    <img src="speakers-pics/alex.jpg" alt="Alex Porcelli" class="speaker-avatar">
-                                    <span class="speaker-name">Alex Porcelli</span>
-                                </div>
-                            </td>
-                        </tr>
+        </div>
+    </nav>
 
-                        <!-- Tuesday -->
-                        <tr>
-                            <td class="day-header" colspan="3">
-                                Tuesday, June 3
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="table-cell table-cell-time font-medium text-[#F77347]" data-time="12:00">12:00</td>
-                            <td class="table-cell table-cell-session">
-                                Coming Soon <span class="session-language">(english)</span>
-                            </td>
-                            <td class="table-cell table-cell-speaker">
-                                <div class="speaker-profile" data-speaker="max">
-                                    <img src="speakers-pics/max.jpeg" alt="Max Arruda" class="speaker-avatar">
-                                    <span class="speaker-name">Max Arruda</span>
-                                </div>
-                            </td>
-                        </tr>
+    <!-- Header -->
+    <header class="header" id="home" role="banner">
+        <div class="container">
+            <div class="header-content">
+                <div class="header-text">
+                    <h1>#CelebrationWeek for 30y of Java</h1>
+                    <p class="header-subtitle">
+                        Join Java Champions, rockstars and community enthusiasts from around the globe for a #CelebrationWeek!
+                    </p>
+                    
+                    <div class="event-meta">
+                        <div class="meta-item">
+                            <svg class="meta-icon" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+                            </svg>
+                            <time datetime="2025-06-16/2025-06-20">June 16-20, 2025</time>
+                        </div>
+                        <div class="meta-item">
+                            <span class="material-icons meta-icon">celebration</span>
+                            <span>Free virtual event</span>
+                        </div>
+                    </div>
+                    
+                    <div class="cta-buttons">
+                        <a href="https://soujava.dev/30y-celebration-week" 
+                           class="btn btn-primary" 
+                           target="_blank" 
+                           rel="noopener">
+                            Register for Free
+                        </a>
+                        <a href="#agenda" class="btn btn-outline">View Agenda</a>
+                    </div>
+                </div>
+                
+                <!-- Speaker Carousel -->
+                <div class="speaker-carousel">
+                    <div class="carousel-container" id="speakerCarousel">
+                        <div class="carousel-track">
+                            <!-- Speakers will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="header-tagline">
+                <p>Brought to you by SouJava. From community, for communities.</p>
+            </div>
+        </div>
+    </header>
 
-                        <!-- Wednesday -->
-                        <tr>
-                            <td class="day-header" colspan="3">
-                                Wednesday, June 4
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="table-cell table-cell-time font-medium text-[#F77347]" data-time="11:30">11:30</td>
-                            <td class="table-cell table-cell-session">
-                                Coming Soon <span class="session-language">(portuguese)</span>
-                            </td>
-                            <td class="table-cell table-cell-speaker">
-                                <div class="speaker-profile" data-speaker="isidro">
-                                    <img src="speakers-pics/isidro.jpg" alt="Professor Isídro" class="speaker-avatar">
-                                    <span class="speaker-name">Professor Isídro</span>
+    <!-- Main Content -->
+    <main id="main-content">
+        <!-- Agenda Section -->
+        <section class="section" id="agenda">
+            <div class="container">
+                <div class="section-content">
+                    <h2 class="section-title">Agenda</h2>
+                    <p class="section-description">Explore our comprehensive schedule of talks, roundtables, and sessions from Java experts worldwide.</p>
+                </div>
+                
+                <div class="agenda-container">
+                    <div class="filters">
+                        <div class="filter-row">
+                            <div class="timezone-section">
+                                <span class="filter-label">See schedule in</span>
+                                <div class="timezone-buttons">
+                                    <button class="timezone-btn active" data-tz="America/Sao_Paulo">BRT</button>
+                                    <button class="timezone-btn" data-tz="Europe/London">CET</button>
+                                    <button class="timezone-btn" data-tz="America/New_York">EST</button>
                                 </div>
-                            </td>
-                        </tr>
-                        <tr class="expandable-row" onclick="toggleDescription('alina-talk')">
-                            <td class="table-cell table-cell-time font-medium text-[#F77347]" data-time="12:30">12:30</td>
-                            <td class="table-cell table-cell-session">
-                                Bring the Action: Using GraalVM in Production <span class="session-language">(english)</span>
-                                <span class="arrow-icon">⤵</span>
-                                <div id="alina-talk" class="talk-description">
-                                    GraalVM has been around for a while, and more and more developers and teams are using it to run Java applications faster, more efficiently, and more securely. According to the latest "State of Spring" survey, 37% of Spring users either already run applications natively compiled GraalVM in production, or are currently evaluating it, and 31% more have such plans.<br><br>For those who haven't moved to GraalVM yet though, the questions and concerns are usually similar: how hard is it to migrate? Can I use my libraries and tools? Can I monitor such native applications?<br><br>What about using the latest Java features? In this hands-on session, we'll talk about all the practical aspects of building and running applications with GraalVM, tooling, monitoring, and using popular libraries, and cover common questions that we get from users.
-                                </div>
-                            </td>
-                            <td class="table-cell table-cell-speaker">
-                                <div class="speaker-profile" data-speaker="alina">
-                                    <img src="speakers-pics/alina.png" alt="Alina Yurenko" class="speaker-avatar">
-                                    <span class="speaker-name">Alina Yurenko</span>
-                                </div>
-                            </td>
-                        </tr>
-
-                        <!-- Thursday -->
-                        <tr>
-                            <td class="day-header" colspan="3">
-                                Thursday, June 5
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="table-cell table-cell-time font-medium text-[#F77347]" data-time="11:30">11:30</td>
-                            <td class="table-cell table-cell-session">
-                                Observability with Quarkus and OpenTelemetry <span class="session-language">(english)</span>
-                            </td>
-                            <td class="table-cell table-cell-speaker">
-                                <div class="speaker-profile" data-speaker="bene">
-                                    <img src="speakers-pics/bene.png" alt="Rafael Benevides" class="speaker-avatar">
-                                    <span class="speaker-name">Rafael Benevides</span>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="table-cell table-cell-time font-medium text-[#F77347]" data-time="12:00">12:00</td>
-                            <td class="table-cell table-cell-session">
-                                Coming Soon <span class="session-language">(english)</span>
-                            </td>
-                            <td class="table-cell table-cell-speaker">
-                                <div class="speaker-profile" data-speaker="tim">
-                                    <img src="speakers-pics/tim.png" alt="Tim Wuthenow" class="speaker-avatar">
-                                    <span class="speaker-name">Tim Wuthenow</span>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="table-cell table-cell-time font-medium text-[#F77347]" data-time="13:00">13:00</td>
-                            <td class="table-cell table-cell-session">
-                                Coming Soon <span class="session-language">(english)</span>
-                            </td>
-                            <td class="table-cell table-cell-speaker">
-                                <div class="speaker-profile" data-speaker="sebastien">
-                                    <img src="speakers-pics/sebastien.jpg" alt="Sébastien Blanc" class="speaker-avatar">
-                                    <span class="speaker-name">Sébastien Blanc</span>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="table-cell table-cell-time font-medium text-[#F77347]" data-time="14:00">14:00</td>
-                            <td class="table-cell table-cell-session">
-                                Mastering Java Concurrency: Pitfalls, Patterns, and Performance Engineering for Massive Scale <span class="session-language">(english)</span>
-                            </td>
-                            <td class="table-cell table-cell-speaker">
-                                <div class="speaker-profile" data-speaker="elder">
-                                    <img src="speakers-pics/elder.jpeg" alt="Elder Moraes" class="speaker-avatar">
-                                    <span class="speaker-name">Elder Moraes</span>
-                                </div>
-                            </td>
-                        </tr>
-
-                        <!-- Friday -->
-                        <tr>
-                            <td class="day-header" colspan="3">
-                                Friday, June 6
-                            </td>
-                        </tr>
-                        <tr class="expandable-row" onclick="toggleDescription('otavio-talk')">
-                            <td class="table-cell table-cell-time font-medium text-[#F77347]" data-time="12:00">12:00</td>
-                            <td class="table-cell table-cell-session">
-                                Domain-Driven Design: From Strategic Discipline to Tactical Implementation <span class="session-language">(english)</span>
-                                <span class="arrow-icon">⤵</span>
-                                <div id="otavio-talk" class="talk-description">
-                                    It's impressive how widely known DDD is—and yet, how rarely it's applied effectively in real-world systems. One of the most common pitfalls? Not knowing where to start. Many developers jump straight into tactical patterns without understanding that DDD is first and foremost a strategic discipline. It's not just about code—it's about aligning software with business.<br><br>Before touching implementation, we must understand the domains and subdomains, define bounded contexts, and establish a clear ubiquitous language. Only then should we move into tactical modeling: entities, aggregates, repositories, and so on.<br><br>To support implementation, I'll also present JMolecules, a powerful tool that brings architectural clarity to code. It integrates seamlessly with tools like ArchUnit, letting you validate architecture rules just like unit tests.
-                                </div>
-                            </td>
-                            <td class="table-cell table-cell-speaker">
-                                <div class="speaker-profile" data-speaker="otavio">
-                                    <img src="speakers-pics/otavio.png" alt="Otávio Santana" class="speaker-avatar">
-                                    <span class="speaker-name">Otávio Santana</span>
-                                </div>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td class="table-cell table-cell-time font-medium text-[#F77347]" data-time="13:00">13:00</td>
-                            <td class="table-cell table-cell-session">
-                                Panel <span class="session-language">(portuguese)</span>
-                            </td>
-                            <td class="table-cell table-cell-speaker">
-                                <div class="speaker-profile" data-speaker="karina">
-                                    <img src="speakers-pics/karina.png" alt="Karina Varela" class="speaker-avatar">
-                                    <span class="speaker-name">Karina Varela</span>
-                                </div>
-                                <div class="speaker-profile mt-2" data-speaker="otavio">
-                                    <img src="speakers-pics/otavio.png" alt="Otávio Santana" class="speaker-avatar">
-                                    <span class="speaker-name">Otávio Santana</span>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                            </div>
+                            
+                            <div class="filter-section">
+                                <span class="filter-label">Filter by</span>
+                                <select id="day-filter" class="filter-select">
+                                    <option value="">All Days</option>
+                                </select>
+                                <select id="language-filter" class="filter-select">
+                                    <option value="">All Languages</option>
+                                    <option value="English">English</option>
+                                    <option value="Portuguese">Portuguese</option>
+                                </select>
+                                <select id="speaker-filter" class="filter-select">
+                                    <option value="">All Speakers</option>
+                                </select>
+                                <button class="clear-filters" id="clear-filters">Clear All</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="schedule" id="schedule-container">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <span>Loading agenda...</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
-        <!-- Footer -->
-        <footer>
-            <div class="footer-main">
-                Brought to you by <span class="footer-org">SouJava</span>
+        <!-- Speakers Section -->
+        <section class="section" id="speakers">
+            <div class="container">
+                <div class="section-content">
+                    <h2 class="section-title">Featured Speakers</h2>
+                    <p class="section-description">Meet our incredible lineup of Java Champions, experts, and community leaders from around the world.</p>
+                </div>
+                
+                <div id="speakers-container" class="speakers-grid">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <span>Loading speakers...</span>
+                    </div>
+                </div>
             </div>
-            <div class="footer-support">
-                + Proudly Supported by <span class="footer-supporter">Aletyx</span>
-            </div>
-        </footer>
-    </div>
+        </section>
 
-    <!-- Speaker Popup -->
-    <div class="speaker-popup" id="speakerPopup">
-        <div class="speaker-popup-content">
-            <button class="speaker-popup-close" onclick="closeSpeakerPopup()">×</button>
-            <div class="text-center mb-6">
-                <img src="" alt="" class="w-32 h-32 rounded-full object-cover mx-auto mb-4">
-                <h3 class="text-2xl font-bold text-[#16293F]"></h3>
-                <p class="text-gray-600 mt-2"></p>
-                <div class="bio-content mt-4 text-left"></div>
+        <!-- CTA Section -->
+        <section class="section cta-section">
+            <div class="container">
+                <div class="section-content">
+                    <h2 class="section-title">Ready to join us?</h2>
+                    <p class="section-description">Don't miss this opportunity to connect with the Java community and celebrate 30 years of innovation.</p>
+                    <div class="cta-button-wrapper">
+                        <a href="https://soujava.dev/30y-celebration-week" 
+                           class="btn btn-primary" 
+                           target="_blank" 
+                           rel="noopener">
+                            Register for Free
+                        </a>
+                    </div>
+                </div>
             </div>
-            <div class="social-links">
-                <a href="#" target="_blank" class="social-link linkedin-link">
-                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
-                </a>
-                <a href="#" target="_blank" class="social-link twitter-link">
-                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-                </a>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-sponsors">
+                <div class="sponsors-section">
+                    <p class="sponsor-label">Brought to you by</p>
+                    <div class="sponsor-logos">
+                        <a href="https://soujava.org" target="_blank" rel="noopener">
+                            <img src="./logos/soujava.png" alt="SouJava" class="sponsor-logo">
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="sponsors-section">
+                    <p class="sponsor-label">Proudly supported by</p>
+                    <div class="sponsor-logos">
+                        <a href="https://aletyx.com" target="_blank" rel="noopener">
+                            <img src="./logos/aletyx.png" alt="Aletyx" class="sponsor-logo">
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2025 SouJava. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modals -->
+    <div class="modal" id="speakerModal" role="dialog" aria-labelledby="speakerName" aria-modal="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="modal-close" aria-label="Close speaker profile">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="speaker-profile">
+                    <img src="" alt="" class="speaker-profile-image" id="modalSpeakerImage">
+                    <h3 class="speaker-profile-name" id="modalSpeakerName"></h3>
+                    <p class="speaker-profile-title" id="modalSpeakerTitle"></p>
+                    <div class="speaker-bio" id="modalSpeakerBio"></div>
+                    <div class="social-links" id="modalSocialLinks"></div>
+                </div>
             </div>
         </div>
     </div>
 
-    <script>
-        // Initialize Day.js plugins
-        dayjs.extend(dayjs_plugin_utc);
-        dayjs.extend(dayjs_plugin_timezone);
+    <div class="modal" id="sessionModal" role="dialog" aria-labelledby="sessionTitle" aria-modal="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="modal-close" aria-label="Close session details">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="sessionDetails"></div>
+            </div>
+        </div>
+    </div>
 
-        let speakers = {};
-        let talks = [];
-
-        // Fetch speakers and talks JSON, then render schedule
-        Promise.all([
-            fetch('speakers.json').then(res => res.json()),
-            fetch('talks.json').then(res => res.json())
-        ]).then(([speakersArr, talksArr]) => {
-            // Convert speakers array to object for fast lookup
-            speakersArr.forEach(s => { speakers[s.id] = s; });
-            talks = talksArr;
-            renderSchedule();
-            setupSpeakerPopups();
-            updateTimes('America/Sao_Paulo');
-        });
-
-        function renderSchedule() {
-            const tbody = document.querySelector('tbody');
-            if (!tbody) return;
-            tbody.innerHTML = '';
-
-            // Group talks by date
-            const talksByDate = {};
-            talks.forEach(talk => {
-                if (!talksByDate[talk.date]) talksByDate[talk.date] = [];
-                talksByDate[talk.date].push(talk);
-            });
-            // Sort dates
-            const sortedDates = Object.keys(talksByDate).sort();
-            const dateLabels = {
-                '2025-06-02': 'Monday, June 2',
-                '2025-06-03': 'Tuesday, June 3',
-                '2025-06-04': 'Wednesday, June 4',
-                '2025-06-05': 'Thursday, June 5',
-                '2025-06-06': 'Friday, June 6'
-            };
-            sortedDates.forEach(date => {
-                // Day header
-                const trDay = document.createElement('tr');
-                trDay.innerHTML = `<td class="day-header" colspan="3">${dateLabels[date] || date}</td>`;
-                tbody.appendChild(trDay);
-                // Talks for this day
-                talksByDate[date].forEach(talk => {
-                    const isExpandable = talk.description && talk.description.trim().length > 0;
-                    const tr = document.createElement('tr');
-                    if (isExpandable) tr.classList.add('expandable-row');
-                    tr.setAttribute('data-talk-id', talk.id);
-                    // Time
-                    const tdTime = document.createElement('td');
-                    tdTime.className = 'table-cell table-cell-time font-medium text-[#F77347]';
-                    tdTime.setAttribute('data-time', talk.time);
-                    tdTime.textContent = talk.time;
-                    // Session
-                    const tdSession = document.createElement('td');
-                    tdSession.className = 'table-cell table-cell-session';
-                    tdSession.innerHTML =
-                        `${talk.title} <span class="session-language">(${talk.language})</span>` +
-                        (isExpandable ? ` <span class="arrow-icon">⤵</span>
-                        <div id="${talk.id}" class="talk-description">$${formatDescription(talk.description)}</div>` : '');
-                    // Speakers
-                    const tdSpeaker = document.createElement('td');
-                    tdSpeaker.className = 'table-cell table-cell-speaker';
-                    tdSpeaker.innerHTML = talk.speakers.map(sid => {
-                        const s = speakers[sid];
-                        if (!s) return '';
-                        return `<div class="speaker-profile" data-speaker="${s.id}">
-                            <img src="${s.image}" alt="${s.name}" class="speaker-avatar">
-                            <span class="speaker-name">${s.name}</span>
-                        </div>`;
-                    }).join('<div class="mt-2"></div>');
-                    tr.appendChild(tdTime);
-                    tr.appendChild(tdSession);
-                    tr.appendChild(tdSpeaker);
-                    tbody.appendChild(tr);
-                });
-            });
-        }
-
-        // Timezone logic (unchanged)
-        const timezoneButtons = document.querySelectorAll('.timezone-btn');
-        function updateTimes(timezone) {
-            document.querySelectorAll('[data-time]').forEach(cell => {
-                const time = cell.dataset.time;
-                if (!/^\d{2}:\d{2}$/.test(time)) return;
-                const [hours, minutes] = time.split(':');
-                const date = dayjs().tz('America/Sao_Paulo')
-                    .hour(parseInt(hours))
-                    .minute(parseInt(minutes));
-                const convertedTime = date.tz(timezone).format('HH:mm');
-                cell.textContent = convertedTime;
-            });
-            timezoneButtons.forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.tz === timezone);
-            });
-        }
-        timezoneButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                updateTimes(btn.dataset.tz);
-            });
-        });
-
-        // Speaker popup logic
-        function setupSpeakerPopups() {
-            document.querySelectorAll('.speaker-profile').forEach(profile => {
-                profile.onclick = function(e) {
-                    e.stopPropagation();
-                    showSpeakerPopup(profile.dataset.speaker);
-                };
-            });
-        }
-        function showSpeakerPopup(speakerId) {
-            const s = speakers[speakerId];
-            if (!s) return;
-            const popup = document.getElementById('speakerPopup');
-            const content = popup.querySelector('.speaker-popup-content');
-            content.querySelector('img').src = s.image;
-            content.querySelector('img').alt = s.name;
-            content.querySelector('h3').textContent = s.name;
-            content.querySelector('p').textContent = s.title;
-            content.querySelector('.bio-content').textContent = s.bio;
-            const linkedinLink = content.querySelector('.linkedin-link');
-            const twitterLink = content.querySelector('.twitter-link');
-            linkedinLink.href = s.linkedin || '#';
-            linkedinLink.style.display = s.linkedin ? 'block' : 'none';
-            twitterLink.href = s.twitter || '#';
-            twitterLink.style.display = s.twitter ? 'block' : 'none';
-            popup.classList.add('active');
-        }
-        function closeSpeakerPopup() {
-            document.getElementById('speakerPopup').classList.remove('active');
-        }
-        function toggleDescription(talkId) {
-            const description = document.getElementById(talkId);
-            if (description) description.classList.toggle('active');
-        }
-        // Close popup when clicking outside
-        document.getElementById('speakerPopup').addEventListener('click', (e) => {
-            if (e.target === e.currentTarget) {
-                closeSpeakerPopup();
-            }
-        });
-
-        // Event delegation for popups and expandable rows
-        document.querySelector('tbody').onclick = function(e) {
-            const speakerProfile = e.target.closest('.speaker-profile');
-            if (speakerProfile) {
-                e.stopPropagation();
-                showSpeakerPopup(speakerProfile.dataset.speaker);
-                return;
-            }
-            const expandableRow = e.target.closest('.expandable-row');
-            if (expandableRow && !e.target.closest('.speaker-profile')) {
-                const talkId = expandableRow.getAttribute('data-talk-id');
-                const desc = expandableRow.querySelector('.talk-description');
-                if (desc) desc.classList.toggle('active');
-            }
-        };
-
-        // Add this helper function before renderSchedule
-        function formatDescription(desc) {
-            if (!desc) return '';
-            return desc
-                .replace(/\n\n/g, '<br><br>')
-                .replace(/\n/g, ' ')
-                .trim();
-        }
-    </script>
+    <script src="main.js"></script>
 </body>
-</html> 
+</html>
