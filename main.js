@@ -483,12 +483,12 @@ class ModalHandler {
         }
 
         if (elements.name) {
-            const isJavaChampion = speaker.name.includes('Barry Burd') || 
-                                  speaker.name.includes('Michael Redlich') || 
-                                  speaker.name.includes('Professor Isidro');
+            // Check if speaker is a Java Champion from their title or bio
+            const isJavaChampion = speaker.title?.toLowerCase().includes('java champion') || 
+                                  speaker.bio?.toLowerCase().includes('java champion');
             
             elements.name.innerHTML = Utils.sanitizeHTML(speaker.name) + 
-                (isJavaChampion ? '<span class="java-champion-badge"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm19 2c0 1.11-.89 2-2 2H2c-1.11 0-2-.89-2-2v-1h24v1z"/></svg>Java Champion</span>' : '');
+                (isJavaChampion ? '<span class="java-champion-badge">Java Champion</span>' : '');
         }
         if (elements.title) elements.title.textContent = speaker.title;
         if (elements.bio) elements.bio.innerHTML = Utils.sanitizeHTML(speaker.bio).replace(/\n/g, '<br>');
