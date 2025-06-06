@@ -194,7 +194,7 @@ class DataLoader {
                 return this.transformSessionizeData(oldCache);
             }
             
-            throw new Error('Failed to load event data. Please try again later.');
+            throw new Error('Unable to load schedule. Please check your connection and refresh the page.');
         }
     }
 
@@ -519,7 +519,13 @@ class ModalHandler {
     showModal(modal) {
         this.closeAll();
         modal.classList.add('active');
+        modal.classList.add('loading');
         document.body.style.overflow = 'hidden';
+        
+        // Simulate loading state
+        setTimeout(() => {
+            modal.classList.remove('loading');
+        }, 300);
         
         const closeBtn = modal.querySelector('.modal-close');
         if (closeBtn) closeBtn.focus();
@@ -561,7 +567,11 @@ class FilterController {
         AppState.eventData.schedule.forEach(day => {
             const option = document.createElement('option');
             option.value = day.date;
-            option.textContent = day.dayName;
+            // Format as "Monday, June 16" instead of just "Monday"
+            const dateObj = new Date(day.date + 'T00:00:00');
+            const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
+            const monthDay = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            option.textContent = `${dayName}, ${monthDay}`;
             dayFilter.appendChild(option);
         });
     }
@@ -614,6 +624,13 @@ class FilterController {
             speaker: document.getElementById('speaker-filter')?.value || '',
             type: document.getElementById('type-filter')?.value || ''
         };
+
+        // Update clear button state
+        const activeFilters = Object.values(AppState.filters).filter(v => v).length;
+        const clearButton = document.getElementById('clear-filters');
+        if (clearButton) {
+            clearButton.setAttribute('data-active', activeFilters > 0);
+        }
 
         this.scheduleRenderer.applyFilters();
     }
@@ -670,30 +687,66 @@ class ScheduleRenderer {
     renderSession(session, date) {
         const speakers = session.speakers.map(speakerId => this.renderSpeaker(speakerId)).join('');
         const formattedTime = Utils.formatTime(session.time, date, AppState.currentTimezone);
+        const speakerNames = session.speakers.map(speakerId => {
+            const speaker = AppState.eventData.speakers[speakerId];
+            return speaker ? speaker.name : 'Speaker';
+        }).join(', ');
         
+        // Use CSS classes instead of JavaScript media queries for responsive layout
         return `
             <div class="session" 
                  data-session-id="${session.id}"
                  data-language="${session.language.toLowerCase()}"
                  data-speakers="${session.speakers.join(',')}"
                  data-type="${session.type}"
-                 data-day="${date}">
+                 data-day="${date}"
+                 tabindex="0"
+                 role="button"
+                 aria-expanded="false"
+                 aria-label="Session: ${session.title}">
                 <div class="session-header" data-session-toggle="${session.id}">
-                    <div class="session-time">${formattedTime}</div>
-                    <div class="session-content">
-                        <h4 class="session-title">${Utils.sanitizeHTML(session.title)}</h4>
-                        <div class="session-badges">
-                            <span class="badge badge-language">${session.language}</span>
-                            <span class="badge badge-type">${session.type}</span>
+                    <!-- Mobile Layout -->
+                    <div class="session-mobile-layout">
+                        <div class="session-row-time">
+                            <span class="session-time">${formattedTime}</span>
+                            <div class="session-badges">
+                                <span class="badge badge-language">${session.language}</span>
+                                <span class="badge badge-type">${session.type}</span>
+                            </div>
+                        </div>
+                        <div class="session-content">
+                            <div class="session-info">
+                                ${speakerNames ? `<div class="session-speaker-name">${Utils.sanitizeHTML(speakerNames)}</div>` : ''}
+                                <div class="session-title">${Utils.sanitizeHTML(session.title)}</div>
+                            </div>
+                            <div class="session-expand-icon">
+                                <span class="sr-only">Toggle details</span>
+                                <svg fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M7 10l5 5 5-5z"/>
+                                </svg>
+                            </div>
                         </div>
                     </div>
-                    <div class="speakers-list">
-                        ${speakers}
-                    </div>
-                    <div class="session-expand-icon">
-                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M7 10l5 5 5-5z"/>
-                        </svg>
+                    
+                    <!-- Desktop Layout -->
+                    <div class="session-desktop-layout">
+                        <div class="session-time">${formattedTime}</div>
+                        <div class="session-content">
+                            <h4 class="session-title">${Utils.sanitizeHTML(session.title)}</h4>
+                            <div class="session-badges">
+                                <span class="badge badge-language">${session.language}</span>
+                                <span class="badge badge-type">${session.type}</span>
+                            </div>
+                        </div>
+                        <div class="speakers-list">
+                            ${speakers}
+                        </div>
+                        <div class="session-expand-icon" data-label="Click to expand">
+                            <span class="sr-only">Toggle details</span>
+                            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M7 10l5 5 5-5z"/>
+                            </svg>
+                        </div>
                     </div>
                 </div>
                 <div class="session-details" data-session-details="${session.id}">
@@ -812,6 +865,18 @@ class ScheduleRenderer {
             }
         });
 
+        // Keyboard navigation for sessions
+        this.container.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                const session = e.target.closest('.session');
+                if (session) {
+                    e.preventDefault();
+                    const sessionId = session.dataset.sessionId;
+                    this.toggleSessionDetails(sessionId);
+                }
+            }
+        });
+
         // Speaker avatar clicks
         this.container.addEventListener('click', (e) => {
             if (e.target.classList.contains('speaker-avatar') || e.target.classList.contains('speaker-fallback')) {
@@ -838,6 +903,7 @@ class ScheduleRenderer {
         const sessionElement = document.querySelector(`[data-session-id="${sessionId}"]`);
         const detailsElement = document.querySelector(`[data-session-details="${sessionId}"]`);
         const expandIcon = sessionElement?.querySelector('.session-expand-icon svg');
+        const expandLabel = sessionElement?.querySelector('.session-expand-icon');
         
         if (!sessionElement || !detailsElement) return;
         
@@ -846,13 +912,18 @@ class ScheduleRenderer {
         if (isExpanded) {
             // Collapse
             sessionElement.classList.remove('expanded');
+            sessionElement.setAttribute('aria-expanded', 'false');
             detailsElement.style.maxHeight = '0';
             if (expandIcon) {
                 expandIcon.style.transform = 'rotate(0deg)';
             }
+            if (expandLabel) {
+                expandLabel.setAttribute('data-label', 'Click to expand');
+            }
         } else {
             // Expand
             sessionElement.classList.add('expanded');
+            sessionElement.setAttribute('aria-expanded', 'true');
             
             // Reset maxHeight to get accurate scrollHeight
             detailsElement.style.maxHeight = 'none';
@@ -866,6 +937,9 @@ class ScheduleRenderer {
             
             if (expandIcon) {
                 expandIcon.style.transform = 'rotate(180deg)';
+            }
+            if (expandLabel) {
+                expandLabel.setAttribute('data-label', 'Click to collapse');
             }
         }
     }
@@ -900,10 +974,10 @@ class ScheduleRenderer {
             const sessionId = sessionElement.dataset.sessionId;
             const session = this.findSessionById(sessionId);
             if (session) {
-                const timeElement = sessionElement.querySelector('.session-time');
-                if (timeElement) {
+                const timeElements = sessionElement.querySelectorAll('.session-time');
+                if (timeElements.length > 0) {
                     const formattedTime = Utils.formatTime(session.time, session.date, AppState.currentTimezone);
-                    timeElement.textContent = formattedTime;
+                    timeElements.forEach(el => el.textContent = formattedTime);
                 }
             }
         });
@@ -921,9 +995,14 @@ class ScheduleRenderer {
 
     renderError(message) {
         this.container.innerHTML = `
-            <div class="error">
-                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">⚠️</div>
-                <div>${message}</div>
+            <div class="error" role="alert">
+                <div class="error-icon">⚠️</div>
+                <div class="error-message">${message}</div>
+                <div class="error-action">
+                    <button class="btn" onclick="location.reload()">
+                        Refresh Page
+                    </button>
+                </div>
             </div>
         `;
     }
