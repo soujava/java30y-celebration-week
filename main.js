@@ -14,7 +14,8 @@ const AppState = {
         day: '',
         language: '',
         speaker: '',
-        type: ''
+        type: '',
+        topic: ''
     }
 };
 
@@ -43,7 +44,7 @@ const Utils = {
                 hour12: false
             }).format(dateTime);
         } catch (error) {
-            console.error('Error formatting time:', error);
+            // Return original string on error
             return timeString;
         }
     },
@@ -57,7 +58,7 @@ const Utils = {
                 day: 'numeric'
             }).format(date);
         } catch (error) {
-            console.error('Error formatting date:', error);
+            // Return original string on error
             return dateString;
         }
     },
@@ -72,7 +73,7 @@ const Utils = {
                 timestamp: date.getTime()
             };
         } catch (error) {
-            console.error('Error parsing time:', error);
+            // Return null on parse error
             return null;
         }
     },
@@ -82,10 +83,9 @@ const Utils = {
             const date = new Date(dateString + 'T00:00:00'); // Add time to ensure correct parsing
             const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
             const monthDay = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-            console.log('formatDateHeader:', dateString, '->', dayName, monthDay);
             return `${dayName}, ${monthDay}`;
         } catch (error) {
-            console.error('Error formatting date header:', error);
+            // Return original string on error
             return dateString;
         }
     },
@@ -127,7 +127,7 @@ const CacheManager = {
             };
             localStorage.setItem(key, JSON.stringify(cacheData));
         } catch (error) {
-            console.warn('Failed to cache data:', error);
+            // Silently fail for cache operations
         }
     },
 
@@ -143,7 +143,7 @@ const CacheManager = {
             }
             return data;
         } catch (error) {
-            console.warn('Failed to retrieve cached data:', error);
+            // Silently fail for cache operations
             return null;
         }
     },
@@ -152,7 +152,7 @@ const CacheManager = {
         try {
             localStorage.removeItem(key);
         } catch (error) {
-            console.warn('Failed to clear cache:', error);
+            // Silently fail for cache operations
         }
     }
 };
@@ -160,18 +160,16 @@ const CacheManager = {
 // Data Loader with Sessionize API
 class DataLoader {
     static async loadEventData() {
-        // Clear cache to force fresh data with new endpoint
+        // Clear cache to force fresh data with updated topic extraction
         CacheManager.clear(CONFIG.CACHE_KEY);
         
         // Try cache first
         const cachedData = CacheManager.get(CONFIG.CACHE_KEY);
         if (cachedData) {
-            console.log('Using cached data');
             return this.transformSessionizeData(cachedData);
         }
 
         try {
-            console.log('Fetching from Sessionize API...');
             const response = await fetch(CONFIG.SESSIONIZE_API);
             
             if (!response.ok) {
@@ -185,12 +183,11 @@ class DataLoader {
             
             return this.transformSessionizeData(data);
         } catch (error) {
-            console.error('Error loading from Sessionize:', error);
+            // API error - try cache or throw
             
             // Try cached data regardless of age
             const oldCache = CacheManager.get(CONFIG.CACHE_KEY, Infinity);
             if (oldCache) {
-                console.log('Using stale cached data due to API failure');
                 return this.transformSessionizeData(oldCache);
             }
             
@@ -203,8 +200,6 @@ class DataLoader {
             speakers: {},
             schedule: []
         };
-
-        console.log('Raw Sessionize data:', sessionizeData);
 
         // Transform speakers
         if (sessionizeData.speakers) {
@@ -240,8 +235,6 @@ class DataLoader {
                 (!session.status || session.status === 'Accepted')
             );
 
-            console.log('Processing', validSessions.length, 'valid sessions with timing data');
-            
             validSessions.forEach(session => {
                 const timeInfo = Utils.parseSessionizeTime(session.startsAt);
                 if (!timeInfo) return;
@@ -253,6 +246,7 @@ class DataLoader {
                     description: session.description || '',
                     language: this.getLanguageFromCategories(session.categoryItems, categoryLookup),
                     type: this.getTypeFromCategories(session.categoryItems, categoryLookup),
+                    topics: this.getTopicsFromCategories(session.categoryItems, categoryLookup),
                     speakers: session.speakers || [],
                     startsAt: session.startsAt,
                     endsAt: session.endsAt,
@@ -282,7 +276,6 @@ class DataLoader {
             day.sessions.sort((a, b) => a.timestamp - b.timestamp);
         });
 
-        console.log('Transformed data:', transformed);
         return transformed;
     }
 
@@ -324,6 +317,20 @@ class DataLoader {
             }
         }
         return 'talk'; // default
+    }
+
+    static getTopicsFromCategories(categoryItems, categoryLookup) {
+        if (!categoryItems || !Array.isArray(categoryItems)) return [];
+        
+        const topics = [];
+        for (const itemId of categoryItems) {
+            const category = categoryLookup[itemId];
+            // Check for 'Topics' category (note the plural form)
+            if (category && category.category === 'Topics') {
+                topics.push(category.name);
+            }
+        }
+        return topics;
     }
 }
 
@@ -410,9 +417,8 @@ class ImagePreloader {
 
         try {
             await Promise.allSettled(imagePromises);
-            console.log('Speaker images preloaded');
         } catch (error) {
-            console.warn('Some speaker images failed to preload:', error);
+            // Silently fail for preload
         }
     }
 
@@ -452,7 +458,6 @@ class ModalHandler {
         const speaker = AppState.eventData?.speakers[speakerId];
         
         if (!speaker) {
-            console.warn('Speaker not found:', speakerId);
             return;
         }
 
@@ -549,6 +554,7 @@ class FilterController {
     initializeFilters() {
         this.populateDayFilter();
         this.populateSpeakerFilter();
+        this.populateTopicFilter();
     }
 
     populateDayFilter() {
@@ -601,8 +607,41 @@ class FilterController {
         });
     }
 
+    populateTopicFilter() {
+        const topicFilter = document.getElementById('topic-filter');
+        if (!topicFilter || !AppState.eventData?.schedule) return;
+
+        // Clear existing options except the first one
+        const firstOption = topicFilter.firstElementChild;
+        if (firstOption) {
+            topicFilter.innerHTML = '';
+            topicFilter.appendChild(firstOption);
+        } else {
+            topicFilter.innerHTML = '<option value="">All Topics</option>';
+        }
+
+        // Collect all unique topics from sessions
+        const allTopics = new Set();
+        AppState.eventData.schedule.forEach(day => {
+            day.sessions.forEach(session => {
+                if (session.topics && session.topics.length > 0) {
+                    session.topics.forEach(topic => allTopics.add(topic));
+                }
+            });
+        });
+
+        // Sort and add to filter
+        const sortedTopics = Array.from(allTopics).sort();
+        sortedTopics.forEach(topic => {
+            const option = document.createElement('option');
+            option.value = topic;
+            option.textContent = topic;
+            topicFilter.appendChild(option);
+        });
+    }
+
     bindEvents() {
-        const filterSelects = ['day-filter', 'language-filter', 'speaker-filter', 'type-filter'];
+        const filterSelects = ['day-filter', 'language-filter', 'speaker-filter', 'type-filter', 'topic-filter'];
         
         filterSelects.forEach(filterId => {
             const filter = document.getElementById(filterId);
@@ -622,7 +661,8 @@ class FilterController {
             day: document.getElementById('day-filter')?.value || '',
             language: document.getElementById('language-filter')?.value || '',
             speaker: document.getElementById('speaker-filter')?.value || '',
-            type: document.getElementById('type-filter')?.value || ''
+            type: document.getElementById('type-filter')?.value || '',
+            topic: document.getElementById('topic-filter')?.value || ''
         };
 
         // Update clear button state
@@ -636,12 +676,12 @@ class FilterController {
     }
 
     clearFilters() {
-        ['day-filter', 'language-filter', 'speaker-filter', 'type-filter'].forEach(filterId => {
+        ['day-filter', 'language-filter', 'speaker-filter', 'type-filter', 'topic-filter'].forEach(filterId => {
             const filter = document.getElementById(filterId);
             if (filter) filter.value = '';
         });
 
-        AppState.filters = { day: '', language: '', speaker: '', type: '' };
+        AppState.filters = { day: '', language: '', speaker: '', type: '', topic: '' };
         this.scheduleRenderer.applyFilters();
     }
 }
@@ -679,7 +719,6 @@ class ScheduleRenderer {
             this.bindEvents();
             this.applyFilters();
         } catch (error) {
-            console.error('Error rendering schedule:', error);
             this.renderError('Error displaying schedule');
         }
     }
@@ -692,6 +731,11 @@ class ScheduleRenderer {
             return speaker ? speaker.name : 'Speaker';
         }).join(', ');
         
+        // Create topics badges HTML
+        const topicBadges = session.topics && session.topics.length > 0 
+            ? session.topics.map(topic => `<span class="badge badge-topic">${Utils.sanitizeHTML(topic)}</span>`).join('')
+            : '';
+        
         // Use CSS classes instead of JavaScript media queries for responsive layout
         return `
             <div class="session" 
@@ -699,6 +743,7 @@ class ScheduleRenderer {
                  data-language="${session.language.toLowerCase()}"
                  data-speakers="${session.speakers.join(',')}"
                  data-type="${session.type}"
+                 data-topics="${(session.topics || []).join(',').toLowerCase()}"
                  data-day="${date}"
                  tabindex="0"
                  role="button"
@@ -707,17 +752,15 @@ class ScheduleRenderer {
                 <div class="session-header" data-session-toggle="${session.id}">
                     <!-- Mobile Layout -->
                     <div class="session-mobile-layout">
-                        <div class="session-row-time">
+                        <div class="session-mobile-header">
                             <span class="session-time">${formattedTime}</span>
-                            <div class="session-badges">
-                                <span class="badge badge-language">${session.language}</span>
-                                <span class="badge badge-type">${session.type}</span>
-                            </div>
+                            <span class="session-meta-mobile">${session.language} • ${session.type}</span>
                         </div>
                         <div class="session-content">
                             <div class="session-info">
                                 ${speakerNames ? `<div class="session-speaker-name">${Utils.sanitizeHTML(speakerNames)}</div>` : ''}
                                 <div class="session-title">${Utils.sanitizeHTML(session.title)}</div>
+                                ${topicBadges ? `<div class="session-topics">${topicBadges}</div>` : ''}
                             </div>
                             <div class="session-expand-icon">
                                 <span class="sr-only">Toggle details</span>
@@ -732,11 +775,13 @@ class ScheduleRenderer {
                     <div class="session-desktop-layout">
                         <div class="session-time">${formattedTime}</div>
                         <div class="session-content">
-                            <h4 class="session-title">${Utils.sanitizeHTML(session.title)}</h4>
-                            <div class="session-badges">
-                                <span class="badge badge-language">${session.language}</span>
-                                <span class="badge badge-type">${session.type}</span>
+                            <div class="session-meta-inline">
+                                <span class="session-language">${session.language}</span>
+                                <span class="meta-separator">•</span>
+                                <span class="session-type">${session.type}</span>
                             </div>
+                            <h4 class="session-title">${Utils.sanitizeHTML(session.title)}</h4>
+                            ${topicBadges ? `<div class="session-badges-topics">${topicBadges}</div>` : ''}
                         </div>
                         <div class="speakers-list">
                             ${speakers}
@@ -945,7 +990,7 @@ class ScheduleRenderer {
     }
 
     applyFilters() {
-        const { day, language, speaker, type } = AppState.filters;
+        const { day, language, speaker, type, topic } = AppState.filters;
         
         document.querySelectorAll('.session').forEach(sessionElement => {
             let visible = true;
@@ -954,6 +999,7 @@ class ScheduleRenderer {
             if (language && sessionElement.dataset.language !== language.toLowerCase()) visible = false;
             if (speaker && !sessionElement.dataset.speakers.split(',').includes(speaker)) visible = false;
             if (type && sessionElement.dataset.type !== type) visible = false;
+            if (topic && !sessionElement.dataset.topics?.toLowerCase().includes(topic.toLowerCase())) visible = false;
 
             sessionElement.style.display = visible ? 'block' : 'none';
         });
@@ -1058,7 +1104,6 @@ class SpeakersRenderer {
             
             this.bindEvents();
         } catch (error) {
-            console.error('Error rendering speakers:', error);
             this.renderError('Error displaying speakers');
         }
     }
@@ -1325,12 +1370,9 @@ class App {
             this.scheduleRenderer.renderLoading();
             this.speakersRenderer.renderLoading();
 
-            console.log('Loading event data...');
             AppState.eventData = await DataLoader.loadEventData();
             AppState.isLoading = false;
             AppState.error = null;
-
-            console.log('Event data loaded:', AppState.eventData);
 
             // Preload speaker images
             if (AppState.eventData.speakers) {
@@ -1345,7 +1387,6 @@ class App {
             this.animationController.observeNewElements();
 
         } catch (error) {
-            console.error('App initialization error:', error);
             AppState.isLoading = false;
             AppState.error = error.message;
             
@@ -1357,11 +1398,17 @@ class App {
 
 // Global error handling
 window.addEventListener('error', function(e) {
-    console.error('Application error:', e.error);
+    // Only log critical errors
+    if (e.error && e.error.message && !e.error.message.includes('ResizeObserver')) {
+        console.error('Application error:', e.error);
+    }
 });
 
 window.addEventListener('unhandledrejection', function(e) {
-    console.error('Unhandled promise rejection:', e.reason);
+    // Only log non-network related promise rejections
+    if (e.reason && !e.reason.toString().includes('fetch')) {
+        console.error('Unhandled promise rejection:', e.reason);
+    }
 });
 
 // Initialize Application
