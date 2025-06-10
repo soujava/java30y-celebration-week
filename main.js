@@ -461,6 +461,9 @@ class ModalHandler {
             return;
         }
 
+        // Track speaker view
+        Analytics.trackSpeakerView(speaker.name);
+        
         this.populateSpeakerContent(speaker);
         this.showModal(this.speakerModal);
     }
@@ -664,6 +667,13 @@ class FilterController {
             type: document.getElementById('type-filter')?.value || '',
             topic: document.getElementById('topic-filter')?.value || ''
         };
+
+        // Track filter usage
+        Object.entries(AppState.filters).forEach(([filterType, filterValue]) => {
+            if (filterValue) {
+                Analytics.trackFilterUse(filterType, filterValue);
+            }
+        });
 
         // Update clear button state
         const activeFilters = Object.values(AppState.filters).filter(v => v).length;
@@ -953,6 +963,12 @@ class ScheduleRenderer {
         if (!sessionElement || !detailsElement) return;
         
         const isExpanded = sessionElement.classList.contains('expanded');
+        
+        // Track session view when expanding
+        if (!isExpanded) {
+            const sessionTitle = sessionElement.querySelector('.session-title')?.textContent || 'Unknown Session';
+            Analytics.trackSessionView(sessionTitle);
+        }
         
         if (isExpanded) {
             // Collapse
@@ -1280,6 +1296,9 @@ class TimezoneController {
                 const timezone = button.dataset.tz;
                 this.setActiveTimezone(timezone);
                 this.scheduleRenderer.updateTimezone(timezone);
+                
+                // Track timezone change
+                Analytics.trackTimezoneChange(timezone);
             });
         });
     }
@@ -1325,6 +1344,60 @@ class AnimationController {
     }
 }
 
+// Analytics Helper
+const Analytics = {
+    track(eventName, parameters = {}) {
+        if (typeof gtag !== 'undefined') {
+            gtag('event', eventName, parameters);
+        }
+    },
+    
+    // Track external link clicks
+    trackExternalLink(label, url) {
+        this.track('click', {
+            event_category: 'External Link',
+            event_label: label,
+            transport_type: 'beacon',
+            value: url
+        });
+    },
+    
+    // Track session interactions
+    trackSessionView(sessionTitle) {
+        this.track('view_item', {
+            event_category: 'Session',
+            event_label: sessionTitle,
+            items: [{ item_name: sessionTitle }]
+        });
+    },
+    
+    // Track speaker profile views
+    trackSpeakerView(speakerName) {
+        this.track('view_item', {
+            event_category: 'Speaker',
+            event_label: speakerName,
+            items: [{ item_name: speakerName }]
+        });
+    },
+    
+    // Track filter usage
+    trackFilterUse(filterType, filterValue) {
+        this.track('search', {
+            search_term: filterValue,
+            event_category: 'Filter',
+            event_label: filterType
+        });
+    },
+    
+    // Track timezone changes
+    trackTimezoneChange(timezone) {
+        this.track('select_content', {
+            content_type: 'timezone',
+            item_id: timezone
+        });
+    }
+};
+
 // Main Application
 class App {
     constructor() {
@@ -1337,6 +1410,23 @@ class App {
         this.timezoneController = new TimezoneController(this.scheduleRenderer);
         this.animationController = new AnimationController();
         this.initMobileNav();
+        this.initAnalytics();
+    }
+    
+    initAnalytics() {
+        // Track registration button clicks
+        document.querySelectorAll('a[href*="soujava.dev/30y-celebration-week"]').forEach(link => {
+            link.addEventListener('click', () => {
+                Analytics.trackExternalLink('Registration', link.href);
+            });
+        });
+        
+        // Track CFP link clicks
+        document.querySelectorAll('a[href*="sessionize.com"]').forEach(link => {
+            link.addEventListener('click', () => {
+                Analytics.trackExternalLink('Call for Papers', link.href);
+            });
+        });
     }
 
     initMobileNav() {
@@ -1398,15 +1488,25 @@ class App {
 
 // Global error handling
 window.addEventListener('error', function(e) {
-    // Only log critical errors
-    if (e.error && e.error.message && !e.error.message.includes('ResizeObserver')) {
+    // Silently handle ResizeObserver errors which are benign
+    if (e.error && e.error.message && e.error.message.includes('ResizeObserver')) {
+        e.preventDefault();
+        return;
+    }
+    // Only log critical errors in development mode
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         console.error('Application error:', e.error);
     }
 });
 
 window.addEventListener('unhandledrejection', function(e) {
-    // Only log non-network related promise rejections
-    if (e.reason && !e.reason.toString().includes('fetch')) {
+    // Silently handle expected promise rejections
+    if (e.reason && (e.reason.toString().includes('fetch') || e.reason.toString().includes('network'))) {
+        e.preventDefault();
+        return;
+    }
+    // Only log in development mode
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         console.error('Unhandled promise rejection:', e.reason);
     }
 });
