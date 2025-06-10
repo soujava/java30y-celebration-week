@@ -462,7 +462,9 @@ class ModalHandler {
         }
 
         // Track speaker view
-        Analytics.trackSpeakerView(speaker.name);
+        const isJavaChampion = speaker.title?.toLowerCase().includes('java champion') || 
+                               speaker.bio?.toLowerCase().includes('java champion');
+        Analytics.trackSpeakerProfileView(speaker.name, isJavaChampion);
         
         this.populateSpeakerContent(speaker);
         this.showModal(this.speakerModal);
@@ -967,7 +969,9 @@ class ScheduleRenderer {
         // Track session view when expanding
         if (!isExpanded) {
             const sessionTitle = sessionElement.querySelector('.session-title')?.textContent || 'Unknown Session';
-            Analytics.trackSessionView(sessionTitle);
+            const topicsElements = sessionElement.querySelectorAll('.badge-topic');
+            const topics = Array.from(topicsElements).map(el => el.textContent.trim());
+            Analytics.trackSessionDetailsView(sessionTitle, topics);
         }
         
         if (isExpanded) {
@@ -1344,7 +1348,7 @@ class AnimationController {
     }
 }
 
-// Analytics Helper
+// Analytics Helper with Specific Event Names
 const Analytics = {
     track(eventName, parameters = {}) {
         if (typeof gtag !== 'undefined') {
@@ -1352,48 +1356,51 @@ const Analytics = {
         }
     },
     
-    // Track external link clicks
-    trackExternalLink(label, url) {
-        this.track('click', {
-            event_category: 'External Link',
-            event_label: label,
-            transport_type: 'beacon',
-            value: url
+    // Track registration button clicks
+    trackRegistrationClick() {
+        this.track('registration_click', {
+            link_location: 'header',
+            transport_type: 'beacon'
         });
     },
     
-    // Track session interactions
-    trackSessionView(sessionTitle) {
-        this.track('view_item', {
-            event_category: 'Session',
-            event_label: sessionTitle,
-            items: [{ item_name: sessionTitle }]
+    // Track CFP clicks
+    trackCFPClick() {
+        this.track('cfp_click', {
+            link_location: 'navigation',
+            transport_type: 'beacon'
+        });
+    },
+    
+    // Track session detail views
+    trackSessionDetailsView(sessionTitle, sessionTopics = []) {
+        this.track('view_session_details', {
+            session_title: sessionTitle,
+            session_topics: sessionTopics.join(', '),
+            topics_count: sessionTopics.length
         });
     },
     
     // Track speaker profile views
-    trackSpeakerView(speakerName) {
-        this.track('view_item', {
-            event_category: 'Speaker',
-            event_label: speakerName,
-            items: [{ item_name: speakerName }]
+    trackSpeakerProfileView(speakerName, isJavaChampion = false) {
+        this.track('view_speaker_profile', {
+            speaker_name: speakerName,
+            is_java_champion: isJavaChampion
         });
     },
     
     // Track filter usage
     trackFilterUse(filterType, filterValue) {
-        this.track('search', {
-            search_term: filterValue,
-            event_category: 'Filter',
-            event_label: filterType
+        this.track('filter_used', {
+            filter_type: filterType,
+            filter_value: filterValue
         });
     },
     
     // Track timezone changes
     trackTimezoneChange(timezone) {
-        this.track('select_content', {
-            content_type: 'timezone',
-            item_id: timezone
+        this.track('change_timezone', {
+            timezone: timezone
         });
     }
 };
@@ -1417,15 +1424,57 @@ class App {
         // Track registration button clicks
         document.querySelectorAll('a[href*="soujava.dev/30y-celebration-week"]').forEach(link => {
             link.addEventListener('click', () => {
-                Analytics.trackExternalLink('Registration', link.href);
+                Analytics.trackRegistrationClick();
             });
         });
         
         // Track CFP link clicks
         document.querySelectorAll('a[href*="sessionize.com"]').forEach(link => {
             link.addEventListener('click', () => {
-                Analytics.trackExternalLink('Call for Papers', link.href);
+                Analytics.trackCFPClick();
             });
+        });
+        
+        // Track supporter/partner clicks - Aletyx
+        document.querySelectorAll('a[href*="aletyx.com"]').forEach(link => {
+            link.addEventListener('click', () => {
+                Analytics.track('supporter_click', {
+                    event_category: 'Supporter Engagement',
+                    event_label: 'Aletyx',
+                    supporter_name: 'Aletyx',
+                    supporter_type: 'partner',
+                    link_location: 'footer'
+                });
+            });
+        });
+        
+        // Track organizer clicks - SouJava
+        document.querySelectorAll('a[href*="soujava.org"]').forEach(link => {
+            link.addEventListener('click', () => {
+                Analytics.track('organizer_click', {
+                    event_category: 'Organizer Engagement',
+                    event_label: 'SouJava',
+                    organizer_name: 'SouJava',
+                    link_location: 'footer'
+                });
+            });
+        });
+        
+        // Track speaker social media clicks
+        document.addEventListener('click', (e) => {
+            const socialLink = e.target.closest('.social-link, .speaker-social-link');
+            if (socialLink) {
+                const platform = socialLink.href.includes('linkedin') ? 'LinkedIn' : 'Twitter';
+                const speakerCard = socialLink.closest('.speaker-profile, .speaker-card');
+                const speakerName = speakerCard?.querySelector('.speaker-name, .speaker-profile-name')?.textContent || 'Unknown';
+                
+                Analytics.track('speaker_social_click', {
+                    event_category: 'Speaker Social',
+                    event_label: `${speakerName} - ${platform}`,
+                    social_platform: platform,
+                    speaker_name: speakerName
+                });
+            }
         });
     }
 
