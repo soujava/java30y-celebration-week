@@ -2,7 +2,6 @@
  * SouJava 30-Year Celebration Week - Event Application
  * Optimized JavaScript with Sessionize API integration
  * FIXES: Proper session scheduling, timezone handling, and data validation
- * FIXED: Analytics tracking to prevent "(not set)" values
  */
 
 // Application State
@@ -31,8 +30,7 @@ const CONFIG = {
         speakers: [],
         categories: [],
         rooms: []
-    },
-    DEBUG_ANALYTICS: false // Disable debug logging for production
+    }
 };
 
 // Utility Functions
@@ -530,18 +528,12 @@ class ModalHandler {
     showSpeaker(speakerId) {
         // Check if data is ready
         if (!AppState.isDataReady) {
-            console.warn('[Analytics] Attempted to show speaker before data loaded');
             return;
-        }
-
-        if (CONFIG.DEBUG_ANALYTICS) {
-            console.log('[Analytics Debug] showSpeaker called with speakerId:', speakerId);
         }
         
         const speaker = AppState.eventData?.speakers[speakerId];
         
         if (!speaker) {
-            console.warn('[Analytics] No speaker found for ID:', speakerId);
             // Track the failed lookup
             Analytics.trackSpeakerProfileView('Speaker Not Found', false);
             return;
@@ -553,10 +545,6 @@ class ModalHandler {
         // Track speaker view with validated data
         const isJavaChampion = speaker.title?.toLowerCase().includes('java champion') || 
                                speaker.bio?.toLowerCase().includes('java champion');
-        
-        if (CONFIG.DEBUG_ANALYTICS) {
-            console.log('[Analytics Debug] Tracking speaker:', speakerName, 'isJavaChampion:', isJavaChampion);
-        }
         
         Analytics.trackSpeakerProfileView(speakerName, isJavaChampion);
         
@@ -1033,7 +1021,6 @@ class ScheduleRenderer {
     bindEvents() {
         // Only bind events if data is ready
         if (!AppState.isDataReady) {
-            console.warn('[Events] Attempted to bind events before data loaded');
             return;
         }
 
@@ -1107,13 +1094,8 @@ class ScheduleRenderer {
                 const sessionTitle = Utils.ensureNonEmptyString(session.title, 'Unknown Session');
                 const topics = session.topics || [];
                 
-                if (CONFIG.DEBUG_ANALYTICS) {
-                    console.log('[Analytics Debug] Tracking session:', sessionTitle, 'topics:', topics);
-                }
-                
                 Analytics.trackSessionDetailsView(sessionTitle, topics);
             } else {
-                console.warn('[Analytics] Session not found in AppState:', sessionId);
                 // Fallback tracking
                 Analytics.trackSessionDetailsView('Session Not Found', []);
             }
@@ -1419,7 +1401,6 @@ class SpeakersRenderer {
     bindEvents() {
         // Only bind if data is ready
         if (!AppState.isDataReady) {
-            console.warn('[Events] Attempted to bind speaker events before data loaded');
             return;
         }
 
@@ -1528,11 +1509,6 @@ const Analytics = {
         
         if (typeof gtag !== 'undefined') {
             gtag('event', eventName, validatedParams);
-        }
-        
-        // Debug logging
-        if (CONFIG.DEBUG_ANALYTICS) {
-            console.log('[Analytics] Event:', eventName, 'Params:', validatedParams);
         }
     },
     
@@ -1849,10 +1825,6 @@ window.addEventListener('error', function(e) {
         e.preventDefault();
         return;
     }
-    // Only log critical errors in development mode
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        console.error('Application error:', e.error);
-    }
 });
 
 window.addEventListener('unhandledrejection', function(e) {
@@ -1860,10 +1832,6 @@ window.addEventListener('unhandledrejection', function(e) {
     if (e.reason && (e.reason.toString().includes('fetch') || e.reason.toString().includes('network'))) {
         e.preventDefault();
         return;
-    }
-    // Only log in development mode
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        console.error('Unhandled promise rejection:', e.reason);
     }
 });
 
