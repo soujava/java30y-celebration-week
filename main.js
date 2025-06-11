@@ -37,6 +37,54 @@ const CONFIG = {
 
 // Utility Functions
 const Utils = {
+    // Generate URL-friendly slug from text
+    createSlug(text) {
+        if (!text) return '';
+        return text
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') // Remove accents
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+            .substring(0, 50); // Limit length for URLs
+    },
+
+    // Create mnemonic session ID from title
+    createSessionAnchor(session) {
+        if (!session || !session.title) return `session-${session.id || 'unknown'}`;
+        
+        // Dynamic slug generation from title
+        let slug = session.title
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '') // Remove accents
+            .replace(/[^a-z0-9]+/g, '-')       // Replace non-alphanumeric with hyphens
+            .replace(/-+/g, '-')               // Remove duplicate hyphens
+            .replace(/^-+|-+$/g, '')           // Trim leading/trailing hyphens
+            .substring(0, 60);                 // Reasonable URL length
+        
+        // If slug is empty or too short, use session ID
+        if (!slug || slug.length < 3) {
+            slug = `session-${session.id}`;
+        }
+        
+        return slug;
+    },
+
+    // Create day anchor from date
+    createDayAnchor(date) {
+        if (!date) return 'day-unknown';
+        const dateObj = new Date(date + 'T00:00:00');
+        const dayNumber = dateObj.getDate() - 15; // June 16 = day 1
+        return `day-${dayNumber}`;
+    },
+
+    // Create speaker anchor from name
+    createSpeakerAnchor(speakerName) {
+        if (!speakerName) return 'speaker-unknown';
+        return this.createSlug(speakerName);
+    },
+
     formatTime(timeString, date, timezone) {
         try {
             const dateTime = new Date(`${date}T${timeString}:00`);
@@ -470,7 +518,11 @@ class ModalHandler {
         // ESC key to close
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                this.closeAll();
+                // Check if any modal is open
+                const openModal = document.querySelector('.modal.active');
+                if (openModal) {
+                    this.closeAll();
+                }
             }
         });
     }
@@ -510,6 +562,12 @@ class ModalHandler {
         
         this.populateSpeakerContent(speaker);
         this.showModal(this.speakerModal);
+        
+        // Update URL AFTER showing the modal to avoid conflicts
+        const speakerAnchor = Utils.createSpeakerAnchor(speaker.name);
+        if (window.history && window.history.pushState) {
+            window.history.pushState(null, '', `#${speakerAnchor}`);
+        }
     }
 
     populateSpeakerContent(speaker) {
@@ -584,10 +642,24 @@ class ModalHandler {
     }
 
     closeAll() {
+        // Check if any modal is actually open before doing anything
+        const hasOpenModal = document.querySelector('.modal.active');
+        if (!hasOpenModal) return;
+        
         document.querySelectorAll('.modal').forEach(modal => {
             modal.classList.remove('active');
         });
         document.body.style.overflow = '';
+        
+        // Remove hash from URL when closing modal
+        if (window.location.hash && window.history && window.history.replaceState) {
+            // First, remove any target highlighting by clearing location.hash
+            window.location.hash = '';
+            
+            // Then clean up the URL to remove the empty # 
+            const baseUrl = window.location.pathname + window.location.search;
+            window.history.replaceState(null, '', baseUrl);
+        }
     }
 }
 
@@ -757,8 +829,9 @@ class ScheduleRenderer {
             let scheduleHTML = '';
             
             AppState.eventData.schedule.forEach((day, dayIndex) => {
+                const dayAnchor = Utils.createDayAnchor(day.date);
                 scheduleHTML += `
-                    <div class="day-group" data-day="${day.date}">
+                    <div class="day-group" data-day="${day.date}" id="${dayAnchor}">
                         <h3 class="day-header">${Utils.formatDateHeader(day.date)}</h3>
                 `;
                 
@@ -790,9 +863,13 @@ class ScheduleRenderer {
             ? session.topics.map(topic => `<span class="badge badge-topic">${Utils.sanitizeHTML(topic)}</span>`).join('')
             : '';
         
+        // Generate session anchor
+        const sessionAnchor = Utils.createSessionAnchor(session);
+        
         // Use CSS classes instead of JavaScript media queries for responsive layout
         return `
             <div class="session" 
+                 id="${sessionAnchor}"
                  data-session-id="${session.id}"
                  data-language="${session.language.toLowerCase()}"
                  data-speakers="${session.speakers.join(',')}"
@@ -1020,6 +1097,12 @@ class ScheduleRenderer {
             const session = AppState.eventData?.sessionsById[sessionId];
             
             if (session) {
+                // Update URL with session anchor
+                const sessionAnchor = sessionElement.id; // Use the existing ID which is the anchor
+                if (window.history && window.history.pushState && sessionAnchor) {
+                    window.history.pushState(null, '', `#${sessionAnchor}`);
+                }
+                
                 // Validate session title
                 const sessionTitle = Utils.ensureNonEmptyString(session.title, 'Unknown Session');
                 const topics = session.topics || [];
@@ -1033,6 +1116,16 @@ class ScheduleRenderer {
                 console.warn('[Analytics] Session not found in AppState:', sessionId);
                 // Fallback tracking
                 Analytics.trackSessionDetailsView('Session Not Found', []);
+            }
+        } else {
+            // When collapsing, remove the hash entirely (don't assume where user came from)
+            if (window.history && window.history.replaceState) {
+                // First clear the hash to remove :target styling
+                window.location.hash = '';
+                
+                // Then clean up the URL
+                const baseUrl = window.location.pathname + window.location.search;
+                window.history.replaceState(null, '', baseUrl);
             }
         }
         
@@ -1301,8 +1394,10 @@ class SpeakersRenderer {
             return `<a href="${url}" target="_blank" rel="noopener" class="speaker-social-link" aria-label="${platform}">${iconMap[platform] || iconMap.linkedin}</a>`;
         }).join('') : '';
 
+        const speakerAnchor = Utils.createSpeakerAnchor(speaker.name);
+
         return `
-            <div class="speaker-card" data-speaker-id="${speakerId}">
+            <div class="speaker-card" id="${speakerAnchor}" data-speaker-id="${speakerId}">
                 <img 
                     src="${speaker.image}" 
                     alt="${speaker.name}"
@@ -1515,6 +1610,94 @@ class App {
         this.animationController = new AnimationController();
         this.initMobileNav();
         this.initAnalytics();
+        this.initAnchorHandling();
+    }
+    
+    initAnchorHandling() {
+        // Handle smooth scrolling for anchor links
+        document.addEventListener('click', (e) => {
+            const link = e.target.closest('a[href^="#"]');
+            if (link) {
+                const targetId = link.getAttribute('href').substring(1);
+                
+                // Don't handle navigation if it's a speaker card click
+                const speakerCard = e.target.closest('.speaker-card');
+                if (speakerCard) {
+                    return; // Let the speaker card handler deal with it
+                }
+                
+                e.preventDefault();
+                this.scrollToAnchor(targetId);
+                
+                // Update URL without triggering scroll
+                if (window.history && window.history.pushState) {
+                    window.history.pushState(null, '', `#${targetId}`);
+                }
+            }
+        });
+        
+        // Handle browser back/forward buttons
+        window.addEventListener('popstate', () => {
+            this.handleHashChange();
+        });
+        
+        // Handle initial load with hash
+        window.addEventListener('hashchange', () => {
+            this.handleHashChange();
+        });
+    }
+    
+    scrollToAnchor(targetId) {
+        const element = document.getElementById(targetId);
+        if (element) {
+            // Get header height for offset
+            const header = document.querySelector('.nav');
+            const headerHeight = header ? header.offsetHeight : 0;
+            const offset = headerHeight + 20; // Add some padding
+            
+            const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+            const offsetPosition = elementPosition - offset;
+            
+            window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+            });
+            
+            // If it's a session, expand it after scrolling
+            if (element.classList.contains('session')) {
+                setTimeout(() => {
+                    const sessionId = element.dataset.sessionId;
+                    if (sessionId && !element.classList.contains('expanded')) {
+                        this.scheduleRenderer.toggleSessionDetails(sessionId);
+                    }
+                }, 600); // Wait for scroll to complete
+            }
+        }
+    }
+    
+    handleHashChange() {
+        const hash = window.location.hash.substring(1);
+        if (hash) {
+            // Wait for content to load if necessary
+            if (AppState.isDataReady) {
+                // Check if it's a speaker anchor
+                const targetElement = document.getElementById(hash);
+                if (targetElement && targetElement.classList.contains('speaker-card')) {
+                    // It's a speaker - open the modal
+                    const speakerId = targetElement.dataset.speakerId;
+                    if (speakerId) {
+                        this.modalHandler.showSpeaker(speakerId);
+                        return; // Don't scroll, modal will handle it
+                    }
+                }
+                
+                // Otherwise, scroll to the anchor
+                this.scrollToAnchor(hash);
+            } else {
+                // Store hash to process after data loads
+                this.pendingHash = hash;
+            }
+        }
     }
     
     initAnalytics() {
@@ -1623,6 +1806,30 @@ class App {
             this.filterController.initializeFilters();
             
             this.animationController.observeNewElements();
+            
+            // Handle pending hash navigation after data loads
+            if (this.pendingHash) {
+                setTimeout(() => {
+                    // Check if it's a speaker anchor
+                    const targetElement = document.getElementById(this.pendingHash);
+                    if (targetElement && targetElement.classList.contains('speaker-card')) {
+                        // It's a speaker - open the modal
+                        const speakerId = targetElement.dataset.speakerId;
+                        if (speakerId) {
+                            this.modalHandler.showSpeaker(speakerId);
+                            this.pendingHash = null;
+                            return;
+                        }
+                    }
+                    
+                    // Otherwise, scroll to it
+                    this.scrollToAnchor(this.pendingHash);
+                    this.pendingHash = null;
+                }, 100); // Small delay to ensure DOM is ready
+            } else {
+                // Check for hash in URL on initial load
+                this.handleHashChange();
+            }
 
         } catch (error) {
             AppState.isLoading = false;

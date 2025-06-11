@@ -1723,3 +1723,37 @@ select:focus-visible {
     outline: 2px solid var(--secondary);
     outline-offset: -2px;
 }
+
+/* Anchor target highlighting */
+:target {
+    animation: highlight 2s ease-out;
+}
+
+@keyframes highlight {
+    0% {
+        background-color: rgba(252, 117, 13, 0.2);
+        box-shadow: 0 0 0 4px rgba(252, 117, 13, 0.3);
+    }
+    100% {
+        background-color: transparent;
+        box-shadow: none;
+    }
+}
+
+/* Specific target styles for different elements */
+.session:target {
+    border-color: var(--primary);
+    background: var(--surface-tertiary);
+}
+
+.speaker-card:target {
+    border-color: var(--primary);
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 12px 35px rgba(252, 117, 13, 0.3);
+}
+
+.day-group:target .day-header {
+    background: linear-gradient(90deg, rgba(252, 117, 13, 0.1) 0%, transparent 100%);
+    border-left: 4px solid var(--primary);
+    padding-left: calc(1rem - 4px);
+}
