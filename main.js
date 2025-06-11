@@ -2,6 +2,7 @@
  * SouJava 30-Year Celebration Week - Event Application
  * Optimized JavaScript with Sessionize API integration
  * FIXES: Proper session scheduling, timezone handling, and data validation
+ * FIXED: Analytics tracking to prevent "(not set)" values
  */
 
 // Application State
@@ -10,6 +11,7 @@ const AppState = {
     currentTimezone: 'America/Sao_Paulo',
     isLoading: true,
     error: null,
+    isDataReady: false, // New flag to prevent race conditions
     filters: {
         day: '',
         language: '',
@@ -29,7 +31,8 @@ const CONFIG = {
         speakers: [],
         categories: [],
         rooms: []
-    }
+    },
+    DEBUG_ANALYTICS: false // Disable debug logging for production
 };
 
 // Utility Functions
@@ -102,6 +105,14 @@ const Utils = {
         const div = document.createElement('div');
         div.textContent = str;
         return div.innerHTML;
+    },
+
+    // New utility to ensure non-empty strings for analytics
+    ensureNonEmptyString(value, fallback = 'Unknown') {
+        if (!value || typeof value !== 'string' || value.trim() === '') {
+            return fallback;
+        }
+        return value.trim();
     },
 
     debounce(func, wait) {
@@ -198,14 +209,18 @@ class DataLoader {
     static transformSessionizeData(sessionizeData) {
         const transformed = {
             speakers: {},
-            schedule: []
+            schedule: [],
+            sessionsById: {} // New: Store sessions by ID for quick lookup
         };
 
-        // Transform speakers
+        // Transform speakers with validation
         if (sessionizeData.speakers) {
             sessionizeData.speakers.forEach(speaker => {
+                // Validate speaker data
+                const speakerName = Utils.ensureNonEmptyString(speaker.fullName, 'Unknown Speaker');
+                
                 transformed.speakers[speaker.id] = {
-                    name: speaker.fullName,
+                    name: speakerName,
                     title: speaker.tagLine || '',
                     bio: speaker.bio || '',
                     image: speaker.profilePicture || '',
@@ -239,10 +254,13 @@ class DataLoader {
                 const timeInfo = Utils.parseSessionizeTime(session.startsAt);
                 if (!timeInfo) return;
                 
+                // Validate session title
+                const sessionTitle = Utils.ensureNonEmptyString(session.title, 'Untitled Session');
+                
                 const transformedSession = {
                     id: session.id.toString(),
                     time: timeInfo.time,
-                    title: session.title,
+                    title: sessionTitle,
                     description: session.description || '',
                     language: this.getLanguageFromCategories(session.categoryItems, categoryLookup),
                     type: this.getTypeFromCategories(session.categoryItems, categoryLookup),
@@ -254,6 +272,9 @@ class DataLoader {
                     roomId: session.roomId,
                     room: sessionizeData.rooms?.find(r => r.id === session.roomId)?.name || ''
                 };
+
+                // Store in sessionsById for quick lookup
+                transformed.sessionsById[transformedSession.id] = transformedSession;
 
                 // Find or create day in schedule
                 let daySchedule = transformed.schedule.find(day => day.date === timeInfo.date);
@@ -455,16 +476,37 @@ class ModalHandler {
     }
 
     showSpeaker(speakerId) {
-        const speaker = AppState.eventData?.speakers[speakerId];
-        
-        if (!speaker) {
+        // Check if data is ready
+        if (!AppState.isDataReady) {
+            console.warn('[Analytics] Attempted to show speaker before data loaded');
             return;
         }
 
-        // Track speaker view
+        if (CONFIG.DEBUG_ANALYTICS) {
+            console.log('[Analytics Debug] showSpeaker called with speakerId:', speakerId);
+        }
+        
+        const speaker = AppState.eventData?.speakers[speakerId];
+        
+        if (!speaker) {
+            console.warn('[Analytics] No speaker found for ID:', speakerId);
+            // Track the failed lookup
+            Analytics.trackSpeakerProfileView('Speaker Not Found', false);
+            return;
+        }
+
+        // Ensure speaker name is valid
+        const speakerName = Utils.ensureNonEmptyString(speaker.name, 'Unknown Speaker');
+        
+        // Track speaker view with validated data
         const isJavaChampion = speaker.title?.toLowerCase().includes('java champion') || 
                                speaker.bio?.toLowerCase().includes('java champion');
-        Analytics.trackSpeakerProfileView(speaker.name, isJavaChampion);
+        
+        if (CONFIG.DEBUG_ANALYTICS) {
+            console.log('[Analytics Debug] Tracking speaker:', speakerName, 'isJavaChampion:', isJavaChampion);
+        }
+        
+        Analytics.trackSpeakerProfileView(speakerName, isJavaChampion);
         
         this.populateSpeakerContent(speaker);
         this.showModal(this.speakerModal);
@@ -912,6 +954,12 @@ class ScheduleRenderer {
     }
 
     bindEvents() {
+        // Only bind events if data is ready
+        if (!AppState.isDataReady) {
+            console.warn('[Events] Attempted to bind events before data loaded');
+            return;
+        }
+
         // Session toggle events
         this.container.addEventListener('click', (e) => {
             const toggleElement = e.target.closest('[data-session-toggle]');
@@ -938,7 +986,7 @@ class ScheduleRenderer {
         this.container.addEventListener('click', (e) => {
             if (e.target.classList.contains('speaker-avatar') || e.target.classList.contains('speaker-fallback')) {
                 const speakerId = e.target.dataset.speakerId;
-                if (speakerId) {
+                if (speakerId && AppState.isDataReady) {
                     this.modalHandler.showSpeaker(speakerId);
                 }
             }
@@ -949,7 +997,7 @@ class ScheduleRenderer {
             const speakerDetail = e.target.closest('.session-speaker-detail');
             if (speakerDetail) {
                 const speakerId = speakerDetail.dataset.speakerId;
-                if (speakerId) {
+                if (speakerId && AppState.isDataReady) {
                     this.modalHandler.showSpeaker(speakerId);
                 }
             }
@@ -966,12 +1014,26 @@ class ScheduleRenderer {
         
         const isExpanded = sessionElement.classList.contains('expanded');
         
-        // Track session view when expanding
+        // Track session view when expanding - USE ACTUAL SESSION DATA
         if (!isExpanded) {
-            const sessionTitle = sessionElement.querySelector('.session-title')?.textContent || 'Unknown Session';
-            const topicsElements = sessionElement.querySelectorAll('.badge-topic');
-            const topics = Array.from(topicsElements).map(el => el.textContent.trim());
-            Analytics.trackSessionDetailsView(sessionTitle, topics);
+            // Get session from AppState instead of DOM
+            const session = AppState.eventData?.sessionsById[sessionId];
+            
+            if (session) {
+                // Validate session title
+                const sessionTitle = Utils.ensureNonEmptyString(session.title, 'Unknown Session');
+                const topics = session.topics || [];
+                
+                if (CONFIG.DEBUG_ANALYTICS) {
+                    console.log('[Analytics Debug] Tracking session:', sessionTitle, 'topics:', topics);
+                }
+                
+                Analytics.trackSessionDetailsView(sessionTitle, topics);
+            } else {
+                console.warn('[Analytics] Session not found in AppState:', sessionId);
+                // Fallback tracking
+                Analytics.trackSessionDetailsView('Session Not Found', []);
+            }
         }
         
         if (isExpanded) {
@@ -1050,10 +1112,14 @@ class ScheduleRenderer {
     }
 
     findSessionById(sessionId) {
-        for (const day of AppState.eventData.schedule) {
-            const session = day.sessions.find(s => s.id === sessionId);
-            if (session) {
-                return { ...session, date: day.date, dayName: day.dayName };
+        // Use the new sessionsById lookup for better performance
+        const session = AppState.eventData?.sessionsById[sessionId];
+        if (session) {
+            // Find the date from schedule
+            for (const day of AppState.eventData.schedule) {
+                if (day.sessions.some(s => s.id === sessionId)) {
+                    return { ...session, date: day.date, dayName: day.dayName };
+                }
             }
         }
         return null;
@@ -1256,6 +1322,12 @@ class SpeakersRenderer {
     }
 
     bindEvents() {
+        // Only bind if data is ready
+        if (!AppState.isDataReady) {
+            console.warn('[Events] Attempted to bind speaker events before data loaded');
+            return;
+        }
+
         this.container.addEventListener('click', (e) => {
             const speakerCard = e.target.closest('.speaker-card');
             if (speakerCard && !e.target.closest('.speaker-social')) {
@@ -1351,8 +1423,21 @@ class AnimationController {
 // Analytics Helper with Specific Event Names
 const Analytics = {
     track(eventName, parameters = {}) {
+        // Validate all parameters before sending
+        const validatedParams = {};
+        
+        Object.entries(parameters).forEach(([key, value]) => {
+            // Ensure all values are non-empty strings
+            validatedParams[key] = Utils.ensureNonEmptyString(value, 'Not Specified');
+        });
+        
         if (typeof gtag !== 'undefined') {
-            gtag('event', eventName, parameters);
+            gtag('event', eventName, validatedParams);
+        }
+        
+        // Debug logging
+        if (CONFIG.DEBUG_ANALYTICS) {
+            console.log('[Analytics] Event:', eventName, 'Params:', validatedParams);
         }
     },
     
@@ -1372,35 +1457,47 @@ const Analytics = {
         });
     },
     
-    // Track session detail views
+    // Track session detail views - FIXED
     trackSessionDetailsView(sessionTitle, sessionTopics = []) {
+        // Ensure session title is valid
+        const validTitle = Utils.ensureNonEmptyString(sessionTitle, 'Unknown Session');
+        const validTopics = sessionTopics.filter(t => t && t.trim()).join(', ') || 'No Topics';
+        
         this.track('view_session_details', {
-            session_title: sessionTitle,
-            session_topics: sessionTopics.join(', '),
+            session_title: validTitle,
+            session_topics: validTopics,
             topics_count: sessionTopics.length
         });
     },
     
-    // Track speaker profile views
+    // Track speaker profile views - ENHANCED
     trackSpeakerProfileView(speakerName, isJavaChampion = false) {
+        // Ensure speaker name is valid
+        const validName = Utils.ensureNonEmptyString(speakerName, 'Unknown Speaker');
+        
         this.track('view_speaker_profile', {
-            speaker_name: speakerName,
+            speaker_name: validName,
             is_java_champion: isJavaChampion
         });
     },
     
     // Track filter usage
     trackFilterUse(filterType, filterValue) {
+        const validType = Utils.ensureNonEmptyString(filterType, 'Unknown Filter');
+        const validValue = Utils.ensureNonEmptyString(filterValue, 'No Value');
+        
         this.track('filter_used', {
-            filter_type: filterType,
-            filter_value: filterValue
+            filter_type: validType,
+            filter_value: validValue
         });
     },
     
     // Track timezone changes
     trackTimezoneChange(timezone) {
+        const validTimezone = Utils.ensureNonEmptyString(timezone, 'Unknown Timezone');
+        
         this.track('change_timezone', {
-            timezone: timezone
+            timezone: validTimezone
         });
     }
 };
@@ -1506,12 +1603,14 @@ class App {
     async init() {
         try {
             AppState.isLoading = true;
+            AppState.isDataReady = false; // Ensure data ready flag is false
             this.scheduleRenderer.renderLoading();
             this.speakersRenderer.renderLoading();
 
             AppState.eventData = await DataLoader.loadEventData();
             AppState.isLoading = false;
             AppState.error = null;
+            AppState.isDataReady = true; // Set data ready flag
 
             // Preload speaker images
             if (AppState.eventData.speakers) {
@@ -1527,6 +1626,7 @@ class App {
 
         } catch (error) {
             AppState.isLoading = false;
+            AppState.isDataReady = false;
             AppState.error = error.message;
             
             this.scheduleRenderer.renderError(error.message);
