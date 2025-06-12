@@ -1513,15 +1513,29 @@ const Analytics = {
     },
     
     // Track registration button clicks
-    trackRegistrationClick() {
+    trackRegistrationClick(location = 'header') {
+        // Use EventAnalytics if available and user consented
+        if (window.EventAnalytics && window.CookieConsent && window.CookieConsent.canTrack()) {
+            window.EventAnalytics.trackRegistrationClick(location);
+            return;
+        }
+        
+        // Fallback to basic tracking
         this.track('registration_click', {
-            link_location: 'header',
+            link_location: location,
             transport_type: 'beacon'
         });
     },
     
     // Track CFP clicks
     trackCFPClick() {
+        // Use EventAnalytics if available and user consented
+        if (window.EventAnalytics && window.CookieConsent && window.CookieConsent.canTrack()) {
+            window.EventAnalytics.trackCFPClick();
+            return;
+        }
+        
+        // Fallback to basic tracking
         this.track('cfp_click', {
             link_location: 'navigation',
             transport_type: 'beacon'
@@ -1530,7 +1544,30 @@ const Analytics = {
     
     // Track session detail views - FIXED
     trackSessionDetailsView(sessionTitle, sessionTopics = []) {
-        // Ensure session title is valid
+        // Use EventAnalytics if available and user consented
+        if (window.EventAnalytics && window.CookieConsent && window.CookieConsent.canTrack()) {
+            // Get full session data from AppState if available
+            const session = Object.values(AppState.eventData?.sessionsById || {})
+                .find(s => s.title === sessionTitle);
+            
+            if (session) {
+                // Get speaker names
+                const speakerNames = session.speakers.map(id => 
+                    AppState.eventData?.speakers[id]?.name || 'Unknown'
+                );
+                
+                window.EventAnalytics.trackSessionInterest({
+                    title: session.title,
+                    day: session.date,
+                    speakers: speakerNames,
+                    language: session.language,
+                    topics: session.topics
+                });
+                return;
+            }
+        }
+        
+        // Fallback to basic tracking
         const validTitle = Utils.ensureNonEmptyString(sessionTitle, 'Unknown Session');
         const validTopics = sessionTopics.filter(t => t && t.trim()).join(', ') || 'No Topics';
         
@@ -1543,7 +1580,17 @@ const Analytics = {
     
     // Track speaker profile views - ENHANCED
     trackSpeakerProfileView(speakerName, isJavaChampion = false) {
-        // Ensure speaker name is valid
+        // Use EventAnalytics if available and user consented
+        if (window.EventAnalytics && window.CookieConsent && window.CookieConsent.canTrack()) {
+            window.EventAnalytics.trackSpeakerView({
+                name: speakerName,
+                isJavaChampion: isJavaChampion,
+                company: '' // You could extract this from speaker.title if needed
+            });
+            return;
+        }
+        
+        // Fallback to basic tracking
         const validName = Utils.ensureNonEmptyString(speakerName, 'Unknown Speaker');
         
         this.track('view_speaker_profile', {
@@ -1554,6 +1601,13 @@ const Analytics = {
     
     // Track filter usage
     trackFilterUse(filterType, filterValue) {
+        // Use EventAnalytics if available and user consented
+        if (window.EventAnalytics && window.CookieConsent && window.CookieConsent.canTrack()) {
+            window.EventAnalytics.trackFilterUse(filterType, filterValue);
+            return;
+        }
+        
+        // Fallback to basic tracking
         const validType = Utils.ensureNonEmptyString(filterType, 'Unknown Filter');
         const validValue = Utils.ensureNonEmptyString(filterValue, 'No Value');
         
@@ -1565,6 +1619,13 @@ const Analytics = {
     
     // Track timezone changes
     trackTimezoneChange(timezone) {
+        // Use EventAnalytics if available and user consented
+        if (window.EventAnalytics && window.CookieConsent && window.CookieConsent.canTrack()) {
+            window.EventAnalytics.trackTimezoneChange(timezone);
+            return;
+        }
+        
+        // Fallback to basic tracking
         const validTimezone = Utils.ensureNonEmptyString(timezone, 'Unknown Timezone');
         
         this.track('change_timezone', {
@@ -1680,7 +1741,10 @@ class App {
         // Track registration button clicks
         document.querySelectorAll('a[href*="soujava.dev/30y-celebration-week"]').forEach(link => {
             link.addEventListener('click', () => {
-                Analytics.trackRegistrationClick();
+                const location = link.closest('header') ? 'header' : 
+                               link.closest('nav') ? 'nav' : 
+                               link.closest('.cta-section') ? 'cta_section' : 'other';
+                Analytics.trackRegistrationClick(location);
             });
         });
         
@@ -1694,25 +1758,33 @@ class App {
         // Track supporter/partner clicks - Aletyx
         document.querySelectorAll('a[href*="aletyx.com"]').forEach(link => {
             link.addEventListener('click', () => {
-                Analytics.track('supporter_click', {
-                    event_category: 'Supporter Engagement',
-                    event_label: 'Aletyx',
-                    supporter_name: 'Aletyx',
-                    supporter_type: 'partner',
-                    link_location: 'footer'
-                });
+                if (window.EventAnalytics && window.CookieConsent && window.CookieConsent.canTrack()) {
+                    window.EventAnalytics.trackPartnerClick('Aletyx');
+                } else {
+                    Analytics.track('supporter_click', {
+                        event_category: 'Supporter Engagement',
+                        event_label: 'Aletyx',
+                        supporter_name: 'Aletyx',
+                        supporter_type: 'partner',
+                        link_location: 'footer'
+                    });
+                }
             });
         });
         
         // Track organizer clicks - SouJava
         document.querySelectorAll('a[href*="soujava.org"]').forEach(link => {
             link.addEventListener('click', () => {
-                Analytics.track('organizer_click', {
-                    event_category: 'Organizer Engagement',
-                    event_label: 'SouJava',
-                    organizer_name: 'SouJava',
-                    link_location: 'footer'
-                });
+                if (window.EventAnalytics && window.CookieConsent && window.CookieConsent.canTrack()) {
+                    window.EventAnalytics.trackPartnerClick('SouJava');
+                } else {
+                    Analytics.track('organizer_click', {
+                        event_category: 'Organizer Engagement',
+                        event_label: 'SouJava',
+                        organizer_name: 'SouJava',
+                        link_location: 'footer'
+                    });
+                }
             });
         });
         
