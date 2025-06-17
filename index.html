@@ -26,7 +26,13 @@
       });
       
       gtag('js', new Date());
-      gtag('config', 'G-K4QDNZB9C7');
+      
+      // Basic anonymous config - always runs
+      gtag('config', 'G-K4QDNZB9C7', {
+        'anonymize_ip': true,
+        'allow_google_signals': false,
+        'allow_ad_personalization_signals': false
+      });
     </script>
 
     
@@ -89,8 +95,7 @@
                     <a href="#" onclick="window.scrollTo({top: 0, behavior: 'smooth'}); return false;">Home</a>
                     <a href="#agenda">Agenda</a>
                     <a href="#speakers">Speakers</a>
-                    <a href="https://sessionize.com/sjcelebration-c4p/" target="_blank" rel="noopener">Call for Papers <span class="material-icons">open_in_new</span></a>
-                    <a href="https://soujava.dev/30y-celebration-week" target="_blank" rel="noopener" class="nav-register">Register</a>
+                    <a href="https://soujava.dev/live-celebrationweek" target="_blank" rel="noopener" class="nav-register">Join Now</a>
                 </div>
                 <button class="nav-toggle" aria-label="Toggle navigation">
                     <span>☰</span>
@@ -123,14 +128,10 @@
                     </div>
                     
                     <div class="cta-buttons">
-                        <a href="https://soujava.dev/30y-celebration-week" 
-                           class="btn btn-primary" 
-                           target="_blank" 
-                           rel="noopener">
-                            Register for Free
-                        </a>
-                        <a href="#agenda" class="btn btn-outline">View Agenda</a>
+                      <a id="primaryCtaButton" href="#" class="btn btn-primary" style="display: none;"></a>
+                      <a id="secondaryCtaButton" href="#" class="btn btn-outline" style="display: none;"></a>
                     </div>
+                    <p class="live-cta-subtext">Access the live streams, agenda, and recordings. Open to all.</p>
                 </div>
                 
                 <!-- Speaker Carousel -->
@@ -207,7 +208,7 @@
             <div class="container">
                 <div class="section-content">
                     <h2 class="section-title">Featured Speakers</h2>
-                    <p class="section-description">Meet our incredible lineup of Java Champions, experts, and community leaders from around the world.</p>
+                    <p class="section-description">Meet our incredible lineup of Java Champions, experts, and community leaders from around the world. Our program was curated from a public <a href="https://sessionize.com/sjcelebration-c4p/" target="_blank" rel="noopener" class="inline-link">Call for Papers <span class="material-icons inline-link-icon">open_in_new</span></a>, showcasing talent from the global Java community.</p>
                 </div>
                 
                 <div id="speakers-container" class="speakers-grid">
@@ -219,50 +220,39 @@
             </div>
         </section>
 
-        <!-- CTA Section -->
-        <section class="section cta-section">
-            <div class="container">
-                <div class="section-content">
-                    <h2 class="section-title">Ready to join us?</h2>
-                    <p class="section-description">Don't miss this opportunity to connect with the Java community and celebrate 30 years of innovation.</p>
-                    <div class="cta-button-wrapper">
-                        <a href="https://soujava.dev/30y-celebration-week" 
-                           class="btn btn-primary" 
-                           target="_blank" 
-                           rel="noopener">
-                            Register for Free
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </section>
+
     </main>
 
     <!-- Footer -->
     <footer class="footer">
         <div class="container">
-            <div class="footer-sponsors">
-                <div class="sponsors-section">
+            <div class="footer-content">
+                <!-- Organizer Tier -->
+                <div class="footer-tier footer-organizer">
                     <p class="sponsor-label">Brought to you by</p>
-                    <div class="sponsor-logos">
-                        <a href="https://soujava.org.br" target="_blank" rel="noopener">
-                            <img src="./logos/soujava.png" alt="SouJava" class="sponsor-logo">
-                        </a>
-                    </div>
+                    <a href="https://soujava.org.br" target="_blank" rel="noopener" class="logo-link">
+                        <img src="./logos/soujava.png" alt="SouJava" class="organizer-logo">
+                    </a>
                 </div>
                 
-                <div class="sponsors-section">
+                <!-- Supporter Tier -->
+                <div class="footer-tier footer-supporters">
                     <p class="sponsor-label">Proudly supported by</p>
-                    <div class="sponsor-logos">
-                        <a href="https://aletyx.com" target="_blank" rel="noopener">
-                            <img src="./logos/aletyx.png" alt="Aletyx" class="sponsor-logo">
+                    <div class="supporter-logos">
+                        <a href="https://aletyx.com" target="_blank" rel="noopener" class="logo-link">
+                            <img src="./logos/aletyx.png" alt="Aletyx" class="supporter-logo">
+                        </a>
+                        <a href="https://jakarta.ee" target="_blank" rel="noopener" class="logo-link">
+                            <img src="./logos/jakartaee.png" alt="Jakarta EE" class="supporter-logo">
                         </a>
                     </div>
                 </div>
             </div>
             
             <div class="footer-bottom">
-                <p>&copy; 2025 SouJava. All rights reserved.</p>
+                <p>&copy; 2025 SouJava. All rights reserved. | 
+                   <a href="#" onclick="CookieConsent.showPreferences(); return false;" style="color: var(--text-secondary); text-decoration: underline;">Cookie Settings</a>
+                </p>
             </div>
         </div>
     </footer>

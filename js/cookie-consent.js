@@ -27,10 +27,9 @@ const CookieConsent = {
         banner.innerHTML = `
             <div class="consent-content">
                 <div class="consent-text">
-                    <p><strong>We use cookies to improve your experience</strong></p>
-                    <p>We use analytics cookies to understand how you use our site.
+                    <p>We collect anonymous visitor statistics to improve our event. With your consent, we can also track which sessions and speakers interest you most.
                     <a href="https://policies.google.com/technologies/cookies" target="_blank" rel="noopener">Learn more</a></p>
-                    <p class="consent-legal">By clicking "Accept", you consent to our use of analytics cookies.</p>
+                    <p class="consent-legal">Basic anonymous metrics are always collected. Enhanced tracking requires consent.</p>
                 </div>
                 <div class="consent-buttons">
                     <button class="consent-button consent-reject" onclick="CookieConsent.reject()">Reject</button>
@@ -78,9 +77,6 @@ const CookieConsent = {
                 line-height: 1.4;
             }
             
-            .consent-text p:first-child {
-                display: none;
-            }
             
             .consent-text a {
                 color: #5cb6fa;
@@ -91,7 +87,7 @@ const CookieConsent = {
             .consent-legal {
                 font-size: 0.75rem;
                 opacity: 0.8;
-                display: none;
+                margin-top: 0.25rem;
             }
             
             .consent-buttons {
@@ -189,16 +185,15 @@ const CookieConsent = {
     },
     
     enableAnalytics() {
-        // Initialize analytics only after consent
-        if (window.EventAnalytics && typeof window.EventAnalytics.init === 'function') {
-            window.EventAnalytics.init();
+        // Re-initialize enhanced tracking after consent
+        if (window.EventAnalytics && typeof window.EventAnalytics.initEnhancedTracking === 'function') {
+            window.EventAnalytics.initEnhancedTracking();
         }
         
-        // Fire page view if it hasn't been sent
+        // Update consent mode to allow cookies
         if (typeof gtag !== 'undefined') {
-            gtag('event', 'page_view', {
-                page_location: window.location.href,
-                page_title: document.title
+            gtag('consent', 'update', {
+                'analytics_storage': 'granted'
             });
         }
     },
@@ -206,6 +201,19 @@ const CookieConsent = {
     // Check if user has consented (for use in other scripts)
     canTrack() {
         return this.hasConsent;
+    },
+    
+    // Allow users to change their consent
+    resetConsent() {
+        localStorage.removeItem(this.consentKey);
+        this.hasConsent = false;
+        location.reload();
+    },
+    
+    // Show preferences (can be called from anywhere)
+    showPreferences() {
+        localStorage.removeItem(this.consentKey);
+        this.showBanner();
     }
 };
 

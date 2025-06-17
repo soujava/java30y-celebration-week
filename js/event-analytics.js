@@ -1,9 +1,23 @@
 /**
  * Event Analytics for Java 30Y Celebration
- * Focused tracking for tech conference KPIs
+ * Two-tier approach: Anonymous metrics + Enhanced tracking with consent
  */
 
 const EventAnalytics = {
+    // Track basic anonymous metrics (no consent needed)
+    trackAnonymousEvent(eventName, parameters = {}) {
+        if (typeof gtag === 'undefined') return;
+        
+        // Only send non-personal, anonymous events
+        const anonymousParams = {
+            ...parameters,
+            'anonymize_ip': true,
+            'allow_google_signals': false,
+            'allow_ad_personalization_signals': false
+        };
+        
+        gtag('event', eventName, anonymousParams);
+    },
     // Track which sessions people are actually interested in
     trackSessionInterest(session) {
         if (typeof gtag === 'undefined' || !CookieConsent.canTrack()) return;
@@ -162,11 +176,37 @@ const EventAnalytics = {
 
     // Initialize all tracking
     init() {
-        // Only initialize if we have consent
-        if (!CookieConsent.canTrack()) {
-            return;
-        }
+        // ALWAYS track basic anonymous metrics
+        this.initBasicTracking();
         
+        // Only initialize enhanced tracking if we have consent
+        if (CookieConsent.canTrack()) {
+            this.initEnhancedTracking();
+        }
+    },
+    
+    // Basic anonymous tracking - always runs
+    initBasicTracking() {
+        // Track basic page navigation
+        this.trackAnonymousEvent('page_view', {
+            page_location: window.location.pathname,
+            page_title: document.title
+        });
+        
+        // Track registration clicks anonymously
+        document.querySelectorAll('a[href*="soujava.dev/30y-celebration-week"]').forEach(link => {
+            link.addEventListener('click', () => {
+                this.trackAnonymousEvent('registration_intent', {
+                    click_location: link.closest('header') ? 'header' : 
+                                   link.closest('nav') ? 'nav' : 
+                                   link.closest('.cta-section') ? 'cta' : 'other'
+                });
+            });
+        });
+    },
+    
+    // Enhanced tracking - only with consent
+    initEnhancedTracking() {
         // Scroll tracking
         this.initScrollTracking();
         
@@ -183,8 +223,11 @@ const EventAnalytics = {
     }
 };
 
-// Don't auto-initialize - wait for consent
-// The cookie consent script will call this when appropriate
+// Initialize immediately for basic tracking
+// Enhanced features will activate if/when consent is given
+document.addEventListener('DOMContentLoaded', () => {
+    EventAnalytics.init();
+});
 
 // Export for use in main.js
 window.EventAnalytics = EventAnalytics;

@@ -4,6 +4,25 @@
  * FIXES: Proper session scheduling, timezone handling, and data validation
  */
 
+// =======================================================
+//   DAILY HERO BUTTON CONFIGURATION - FINAL VERSION
+// =======================================================
+const HERO_CTA_CONFIG = {
+  // Primary button links to the LIVE or UPCOMING stream
+  primary: {
+    text: "Join the Live Stream",
+    link: "https://soujava.dev/celebration-day-2" // This link is still updated daily
+  },
+  // Secondary button links to the MOST RECENT recording
+  secondary: {
+    text: "Latest Recordings",
+    link: "https://soujava.dev/celebration-day-1" // This link is also updated daily
+  },
+  // Set to false if you only want to show one button
+  showSecondaryButton: true 
+};
+// =======================================================
+
 // Application State
 const AppState = {
     eventData: null,
@@ -818,9 +837,18 @@ class ScheduleRenderer {
             
             AppState.eventData.schedule.forEach((day, dayIndex) => {
                 const dayAnchor = Utils.createDayAnchor(day.date);
+                // Calculate the day number (June 16 = day 1)
+                const dayNumber = new Date(day.date + 'T00:00:00').getDate() - 15;
+                const streamLink = `https://soujava.dev/celebration-day-${dayNumber}`;
+                
                 scheduleHTML += `
                     <div class="day-group" data-day="${day.date}" id="${dayAnchor}">
-                        <h3 class="day-header">${Utils.formatDateHeader(day.date)}</h3>
+                        <div class="day-header-container">
+                            <h3 class="day-header">${Utils.formatDateHeader(day.date)}</h3>
+                            <a href="${streamLink}" target="_blank" rel="noopener" class="day-stream-link">
+                                Watch Day ${dayNumber} Stream <span class="material-icons">open_in_new</span>
+                            </a>
+                        </div>
                 `;
                 
                 day.sessions.forEach(session => {
@@ -1100,12 +1128,8 @@ class ScheduleRenderer {
                 Analytics.trackSessionDetailsView('Session Not Found', []);
             }
         } else {
-            // When collapsing, remove the hash entirely (don't assume where user came from)
+            // When collapsing, remove the hash from the URL without causing a page jump.
             if (window.history && window.history.replaceState) {
-                // First clear the hash to remove :target styling
-                window.location.hash = '';
-                
-                // Then clean up the URL
                 const baseUrl = window.location.pathname + window.location.search;
                 window.history.replaceState(null, '', baseUrl);
             }
@@ -1907,6 +1931,32 @@ window.addEventListener('unhandledrejection', function(e) {
     }
 });
 
+// Apply Hero CTA Configuration
+function applyHeroCtaConfig() {
+  const primaryBtn = document.getElementById('primaryCtaButton');
+  const secondaryBtn = document.getElementById('secondaryCtaButton');
+
+  // Configure Primary Button
+  if (primaryBtn && HERO_CTA_CONFIG.primary && HERO_CTA_CONFIG.primary.text) {
+    primaryBtn.textContent = HERO_CTA_CONFIG.primary.text;
+    primaryBtn.href = HERO_CTA_CONFIG.primary.link;
+    primaryBtn.target = "_blank";
+    primaryBtn.rel = "noopener";
+    primaryBtn.style.display = 'inline-flex';
+  }
+
+  // Configure Secondary Button
+  if (secondaryBtn && HERO_CTA_CONFIG.showSecondaryButton && HERO_CTA_CONFIG.secondary && HERO_CTA_CONFIG.secondary.text) {
+    secondaryBtn.textContent = HERO_CTA_CONFIG.secondary.text;
+    secondaryBtn.href = HERO_CTA_CONFIG.secondary.link;
+    secondaryBtn.target = "_blank";
+    secondaryBtn.rel = "noopener";
+    secondaryBtn.style.display = 'inline-flex';
+  } else if (secondaryBtn) {
+    secondaryBtn.style.display = 'none'; // Ensure it's hidden if not configured
+  }
+}
+
 // Initialize Application
 let app;
 let modalHandler;
@@ -1915,6 +1965,9 @@ function initApp() {
     app = new App();
     modalHandler = app.modalHandler; // Make modal handler globally available
     app.init();
+    
+    // Apply hero CTA configuration
+    applyHeroCtaConfig();
 }
 
 // Start the application when DOM is ready
