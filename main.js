@@ -11,12 +11,12 @@ const HERO_CTA_CONFIG = {
   // Primary button links to the LIVE or UPCOMING stream
   primary: {
     text: "Join the Live Stream",
-    link: "https://soujava.dev/celebration-day-3" // This link is still updated daily
+    link: "https://soujava.dev/celebration-day-4" // This link is still updated daily
   },
   // Secondary button links to the MOST RECENT recording
   secondary: {
     text: "Latest Recordings",
-    link: "https://soujava.dev/celebration-day-2" // This link is also updated daily
+    link: "https://soujava.dev/celebration-day-3" // This link is also updated daily
   },
   // Set to false if you only want to show one button
   showSecondaryButton: true 
