@@ -1,35 +1,21 @@
-/**
- * SouJava 30-Year Celebration Week - Event Application
- * Optimized JavaScript with Sessionize API integration
- * FIXES: Proper session scheduling, timezone handling, and data validation
- */
-
-// =======================================================
-//   DAILY HERO BUTTON CONFIGURATION - FINAL VERSION
-// =======================================================
 const HERO_CTA_CONFIG = {
-  // Primary button links to the LIVE or UPCOMING stream
   primary: {
-    text: "Join the Live Stream",
-    link: "https://soujava.dev/celebration-day-5" 
+    text: "Watch the Sessions",
+    link: "https://soujava.dev/celebrationplaylist" 
   },
-  // Secondary button links to the recordings playlist
   secondary: {
-    text: "Latest Recordings",
-    link: "https://soujava.dev/celebrationplaylist"
+    text: "",
+    link: ""
   },
-  // Set to false if you only want to show one button
-  showSecondaryButton: true 
+  showSecondaryButton: false 
 };
-// =======================================================
 
-// Application State
 const AppState = {
     eventData: null,
     currentTimezone: 'America/Sao_Paulo',
     isLoading: true,
     error: null,
-    isDataReady: false, // New flag to prevent race conditions
+    isDataReady: false,
     filters: {
         day: '',
         language: '',
@@ -39,11 +25,10 @@ const AppState = {
     }
 };
 
-// Configuration
 const CONFIG = {
     SESSIONIZE_API: 'https://sessionize.com/api/v2/f8z6beeh/view/All',
     CACHE_KEY: 'soujava_event_data',
-    CACHE_DURATION: 30 * 60 * 1000, // 30 minutes
+    CACHE_DURATION: 30 * 60 * 1000,
     FALLBACK_DATA: {
         sessions: [],
         speakers: [],
@@ -52,35 +37,30 @@ const CONFIG = {
     }
 };
 
-// Utility Functions
 const Utils = {
-    // Generate URL-friendly slug from text
     createSlug(text) {
         if (!text) return '';
         return text
             .toLowerCase()
             .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '') // Remove accents
+            .replace(/[\u0300-\u036f]/g, '')
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-+|-+$/g, '')
-            .substring(0, 50); // Limit length for URLs
+            .substring(0, 50);
     },
 
-    // Create mnemonic session ID from title
     createSessionAnchor(session) {
         if (!session || !session.title) return `session-${session.id || 'unknown'}`;
         
-        // Dynamic slug generation from title
         let slug = session.title
             .toLowerCase()
             .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '') // Remove accents
-            .replace(/[^a-z0-9]+/g, '-')       // Replace non-alphanumeric with hyphens
-            .replace(/-+/g, '-')               // Remove duplicate hyphens
-            .replace(/^-+|-+$/g, '')           // Trim leading/trailing hyphens
-            .substring(0, 60);                 // Reasonable URL length
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-+|-+$/g, '')
+            .substring(0, 60);
         
-        // If slug is empty or too short, use session ID
         if (!slug || slug.length < 3) {
             slug = `session-${session.id}`;
         }
@@ -88,15 +68,13 @@ const Utils = {
         return slug;
     },
 
-    // Create day anchor from date
     createDayAnchor(date) {
         if (!date) return 'day-unknown';
         const dateObj = new Date(date + 'T00:00:00');
-        const dayNumber = dateObj.getDate() - 15; // June 16 = day 1
+        const dayNumber = dateObj.getDate() - 15;
         return `day-${dayNumber}`;
     },
 
-    // Create speaker anchor from name
     createSpeakerAnchor(speakerName) {
         if (!speakerName) return 'speaker-unknown';
         return this.createSlug(speakerName);
@@ -112,7 +90,6 @@ const Utils = {
                 hour12: false
             }).format(dateTime);
         } catch (error) {
-            // Return original string on error
             return timeString;
         }
     },
@@ -126,7 +103,6 @@ const Utils = {
                 day: 'numeric'
             }).format(date);
         } catch (error) {
-            // Return original string on error
             return dateString;
         }
     },
@@ -141,19 +117,17 @@ const Utils = {
                 timestamp: date.getTime()
             };
         } catch (error) {
-            // Return null on parse error
             return null;
         }
     },
 
     formatDateHeader(dateString) {
         try {
-            const date = new Date(dateString + 'T00:00:00'); // Add time to ensure correct parsing
+            const date = new Date(dateString + 'T00:00:00');
             const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
             const monthDay = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
             return `${dayName}, ${monthDay}`;
         } catch (error) {
-            // Return original string on error
             return dateString;
         }
     },
@@ -172,7 +146,6 @@ const Utils = {
         return div.innerHTML;
     },
 
-    // New utility to ensure non-empty strings for analytics
     ensureNonEmptyString(value, fallback = 'Unknown') {
         if (!value || typeof value !== 'string' || value.trim() === '') {
             return fallback;
@@ -193,7 +166,6 @@ const Utils = {
     }
 };
 
-// Cache Management
 const CacheManager = {
     set(key, data) {
         try {
@@ -203,7 +175,6 @@ const CacheManager = {
             };
             localStorage.setItem(key, JSON.stringify(cacheData));
         } catch (error) {
-            // Silently fail for cache operations
         }
     },
 
@@ -219,7 +190,6 @@ const CacheManager = {
             }
             return data;
         } catch (error) {
-            // Silently fail for cache operations
             return null;
         }
     },
@@ -228,18 +198,14 @@ const CacheManager = {
         try {
             localStorage.removeItem(key);
         } catch (error) {
-            // Silently fail for cache operations
         }
     }
 };
 
-// Data Loader with Sessionize API
 class DataLoader {
     static async loadEventData() {
-        // Clear cache to force fresh data with updated topic extraction
         CacheManager.clear(CONFIG.CACHE_KEY);
         
-        // Try cache first
         const cachedData = CacheManager.get(CONFIG.CACHE_KEY);
         if (cachedData) {
             return this.transformSessionizeData(cachedData);
@@ -254,14 +220,11 @@ class DataLoader {
             
             const data = await response.json();
             
-            // Cache the raw data
             CacheManager.set(CONFIG.CACHE_KEY, data);
             
             return this.transformSessionizeData(data);
         } catch (error) {
-            // API error - try cache or throw
             
-            // Try cached data regardless of age
             const oldCache = CacheManager.get(CONFIG.CACHE_KEY, Infinity);
             if (oldCache) {
                 return this.transformSessionizeData(oldCache);
@@ -275,13 +238,11 @@ class DataLoader {
         const transformed = {
             speakers: {},
             schedule: [],
-            sessionsById: {} // New: Store sessions by ID for quick lookup
+            sessionsById: {}
         };
 
-        // Transform speakers with validation
         if (sessionizeData.speakers) {
             sessionizeData.speakers.forEach(speaker => {
-                // Validate speaker data
                 const speakerName = Utils.ensureNonEmptyString(speaker.fullName, 'Unknown Speaker');
                 
                 transformed.speakers[speaker.id] = {
@@ -294,7 +255,6 @@ class DataLoader {
             });
         }
 
-        // Create categories lookup
         const categoryLookup = {};
         if (sessionizeData.categories) {
             sessionizeData.categories.forEach(category => {
@@ -307,7 +267,6 @@ class DataLoader {
             });
         }
 
-        // Process sessions with actual timing data
         if (sessionizeData.sessions && sessionizeData.sessions.length > 0) {
             const validSessions = sessionizeData.sessions.filter(session => 
                 session.title && 
@@ -319,7 +278,6 @@ class DataLoader {
                 const timeInfo = Utils.parseSessionizeTime(session.startsAt);
                 if (!timeInfo) return;
                 
-                // Validate session title
                 const sessionTitle = Utils.ensureNonEmptyString(session.title, 'Untitled Session');
                 
                 const transformedSession = {
@@ -338,10 +296,8 @@ class DataLoader {
                     room: sessionizeData.rooms?.find(r => r.id === session.roomId)?.name || ''
                 };
 
-                // Store in sessionsById for quick lookup
                 transformed.sessionsById[transformedSession.id] = transformedSession;
 
-                // Find or create day in schedule
                 let daySchedule = transformed.schedule.find(day => day.date === timeInfo.date);
                 if (!daySchedule) {
                     daySchedule = {
@@ -356,7 +312,6 @@ class DataLoader {
             });
         }
 
-        // Sort schedule by date and sessions by time
         transformed.schedule.sort((a, b) => new Date(a.date) - new Date(b.date));
         transformed.schedule.forEach(day => {
             day.sessions.sort((a, b) => a.timestamp - b.timestamp);
@@ -390,7 +345,7 @@ class DataLoader {
                 return category.name;
             }
         }
-        return 'English'; // default
+        return 'English';
     }
 
     static getTypeFromCategories(categoryItems, categoryLookup) {
@@ -402,7 +357,7 @@ class DataLoader {
                 return category.name.toLowerCase().replace(/\s+/g, '');
             }
         }
-        return 'talk'; // default
+        return 'talk';
     }
 
     static getTopicsFromCategories(categoryItems, categoryLookup) {
@@ -411,7 +366,6 @@ class DataLoader {
         const topics = [];
         for (const itemId of categoryItems) {
             const category = categoryLookup[itemId];
-            // Check for 'Topics' category (note the plural form)
             if (category && category.category === 'Topics') {
                 topics.push(category.name);
             }
@@ -420,7 +374,6 @@ class DataLoader {
     }
 }
 
-// Speaker Carousel Controller
 class SpeakerCarousel {
     constructor() {
         this.container = document.getElementById('speakerCarousel');
@@ -430,16 +383,14 @@ class SpeakerCarousel {
     populate(speakers) {
         if (!this.track || !speakers) return;
 
-        // Get all speakers and limit for carousel
         const availableSpeakers = Object.entries(speakers)
-            .slice(0, 12); // Limit to 12 speakers for smooth animation
+            .slice(0, 12);
 
         if (availableSpeakers.length === 0) {
             this.track.innerHTML = '<div style="color: rgba(255,255,255,0.7); text-align: center; padding: 2rem;">Speakers coming soon...</div>';
             return;
         }
 
-        // Duplicate speakers for seamless loop (double the list)
         const duplicatedSpeakers = [...availableSpeakers, ...availableSpeakers];
         
         const speakersHTML = duplicatedSpeakers.map(([id, speaker]) => {
@@ -467,12 +418,9 @@ class SpeakerCarousel {
     }
 
     bindEvents() {
-        // Carousel speakers are no longer clickable
-        // Removed click events for carousel speakers
     }
 }
 
-// Image Preloader
 class ImagePreloader {
     constructor() {
         this.loadedImages = new Set();
@@ -504,7 +452,6 @@ class ImagePreloader {
         try {
             await Promise.allSettled(imagePromises);
         } catch (error) {
-            // Silently fail for preload
         }
     }
 
@@ -513,7 +460,6 @@ class ImagePreloader {
     }
 }
 
-// Modal Handler
 class ModalHandler {
     constructor() {
         this.speakerModal = document.getElementById('speakerModal');
@@ -521,7 +467,6 @@ class ModalHandler {
     }
 
     bindEvents() {
-        // Close modal events
         document.querySelectorAll('.modal-close').forEach(btn => {
             btn.addEventListener('click', () => this.closeAll());
         });
@@ -532,10 +477,8 @@ class ModalHandler {
             });
         });
         
-        // ESC key to close
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
-                // Check if any modal is open
                 const openModal = document.querySelector('.modal.active');
                 if (openModal) {
                     this.closeAll();
@@ -545,7 +488,6 @@ class ModalHandler {
     }
 
     showSpeaker(speakerId) {
-        // Check if data is ready
         if (!AppState.isDataReady) {
             return;
         }
@@ -553,15 +495,12 @@ class ModalHandler {
         const speaker = AppState.eventData?.speakers[speakerId];
         
         if (!speaker) {
-            // Track the failed lookup
             Analytics.trackSpeakerProfileView('Speaker Not Found', false);
             return;
         }
 
-        // Ensure speaker name is valid
         const speakerName = Utils.ensureNonEmptyString(speaker.name, 'Unknown Speaker');
         
-        // Track speaker view with validated data
         const isJavaChampion = speaker.title?.toLowerCase().includes('java champion') || 
                                speaker.bio?.toLowerCase().includes('java champion');
         
@@ -570,7 +509,6 @@ class ModalHandler {
         this.populateSpeakerContent(speaker);
         this.showModal(this.speakerModal);
         
-        // Update URL AFTER showing the modal to avoid conflicts
         const speakerAnchor = Utils.createSpeakerAnchor(speaker.name);
         if (window.history && window.history.pushState) {
             window.history.pushState(null, '', `#${speakerAnchor}`);
@@ -595,7 +533,6 @@ class ModalHandler {
         }
 
         if (elements.name) {
-            // Check if speaker is a Java Champion from their title or bio
             const isJavaChampion = speaker.title?.toLowerCase().includes('java champion') || 
                                   speaker.bio?.toLowerCase().includes('java champion');
             
@@ -639,7 +576,6 @@ class ModalHandler {
         modal.classList.add('loading');
         document.body.style.overflow = 'hidden';
         
-        // Simulate loading state
         setTimeout(() => {
             modal.classList.remove('loading');
         }, 300);
@@ -649,7 +585,6 @@ class ModalHandler {
     }
 
     closeAll() {
-        // Check if any modal is actually open before doing anything
         const hasOpenModal = document.querySelector('.modal.active');
         if (!hasOpenModal) return;
         
@@ -658,19 +593,15 @@ class ModalHandler {
         });
         document.body.style.overflow = '';
         
-        // Remove hash from URL when closing modal
         if (window.location.hash && window.history && window.history.replaceState) {
-            // First, remove any target highlighting by clearing location.hash
             window.location.hash = '';
             
-            // Then clean up the URL to remove the empty # 
             const baseUrl = window.location.pathname + window.location.search;
             window.history.replaceState(null, '', baseUrl);
         }
     }
 }
 
-// Filter Controller
 class FilterController {
     constructor(scheduleRenderer) {
         this.scheduleRenderer = scheduleRenderer;
@@ -687,7 +618,6 @@ class FilterController {
         const dayFilter = document.getElementById('day-filter');
         if (!dayFilter || !AppState.eventData?.schedule) return;
 
-        // Clear existing options except the first one
         const firstOption = dayFilter.firstElementChild;
         if (firstOption) {
             dayFilter.innerHTML = '';
@@ -699,7 +629,6 @@ class FilterController {
         AppState.eventData.schedule.forEach(day => {
             const option = document.createElement('option');
             option.value = day.date;
-            // Format as "Monday, June 16" instead of just "Monday"
             const dateObj = new Date(day.date + 'T00:00:00');
             const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'long' });
             const monthDay = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -712,7 +641,6 @@ class FilterController {
         const speakerFilter = document.getElementById('speaker-filter');
         if (!speakerFilter || !AppState.eventData?.speakers) return;
 
-        // Clear existing options except the first one
         const firstOption = speakerFilter.firstElementChild;
         if (firstOption) {
             speakerFilter.innerHTML = '';
@@ -721,7 +649,6 @@ class FilterController {
             speakerFilter.innerHTML = '<option value="">All Speakers</option>';
         }
 
-        // Show all speakers in filter
         const allSpeakers = Object.entries(AppState.eventData.speakers)
             .sort(([,a], [,b]) => a.name.localeCompare(b.name));
 
@@ -737,7 +664,6 @@ class FilterController {
         const topicFilter = document.getElementById('topic-filter');
         if (!topicFilter || !AppState.eventData?.schedule) return;
 
-        // Clear existing options except the first one
         const firstOption = topicFilter.firstElementChild;
         if (firstOption) {
             topicFilter.innerHTML = '';
@@ -746,7 +672,6 @@ class FilterController {
             topicFilter.innerHTML = '<option value="">All Topics</option>';
         }
 
-        // Collect all unique topics from sessions
         const allTopics = new Set();
         AppState.eventData.schedule.forEach(day => {
             day.sessions.forEach(session => {
@@ -756,7 +681,6 @@ class FilterController {
             });
         });
 
-        // Sort and add to filter
         const sortedTopics = Array.from(allTopics).sort();
         sortedTopics.forEach(topic => {
             const option = document.createElement('option');
@@ -791,14 +715,12 @@ class FilterController {
             topic: document.getElementById('topic-filter')?.value || ''
         };
 
-        // Track filter usage
         Object.entries(AppState.filters).forEach(([filterType, filterValue]) => {
             if (filterValue) {
                 Analytics.trackFilterUse(filterType, filterValue);
             }
         });
 
-        // Update clear button state
         const activeFilters = Object.values(AppState.filters).filter(v => v).length;
         const clearButton = document.getElementById('clear-filters');
         if (clearButton) {
@@ -819,7 +741,6 @@ class FilterController {
     }
 }
 
-// Schedule Renderer
 class ScheduleRenderer {
     constructor(modalHandler) {
         this.container = document.getElementById('schedule-container');
@@ -837,7 +758,6 @@ class ScheduleRenderer {
             
             AppState.eventData.schedule.forEach((day, dayIndex) => {
                 const dayAnchor = Utils.createDayAnchor(day.date);
-                // Calculate the day number (June 16 = day 1)
                 const dayNumber = new Date(day.date + 'T00:00:00').getDate() - 15;
                 const streamLink = `https://soujava.dev/celebration-day-${dayNumber}`;
                 
@@ -874,15 +794,12 @@ class ScheduleRenderer {
             return speaker ? speaker.name : 'Speaker';
         }).join(', ');
         
-        // Create topics badges HTML
         const topicBadges = session.topics && session.topics.length > 0 
             ? session.topics.map(topic => `<span class="badge badge-topic">${Utils.sanitizeHTML(topic)}</span>`).join('')
             : '';
         
-        // Generate session anchor
         const sessionAnchor = Utils.createSessionAnchor(session);
         
-        // Use CSS classes instead of JavaScript media queries for responsive layout
         return `
             <div class="session" 
                  id="${sessionAnchor}"
@@ -897,7 +814,6 @@ class ScheduleRenderer {
                  aria-expanded="false"
                  aria-label="Session: ${session.title}">
                 <div class="session-header" data-session-toggle="${session.id}">
-                    <!-- Mobile Layout -->
                     <div class="session-mobile-layout">
                         <div class="session-mobile-header">
                             <span class="session-time">${formattedTime}</span>
@@ -918,7 +834,6 @@ class ScheduleRenderer {
                         </div>
                     </div>
                     
-                    <!-- Desktop Layout -->
                     <div class="session-desktop-layout">
                         <div class="session-time">${formattedTime}</div>
                         <div class="session-content">
@@ -959,18 +874,15 @@ class ScheduleRenderer {
     }
 
     renderSpeaker(speakerData) {
-        // Handle null speakers
         if (!speakerData) {
             return `<div class="speaker-fallback">
                 ${Utils.getInitials('TBD')}
             </div>`;
         }
         
-        // Handle both ID strings and speaker objects
         const speakerId = typeof speakerData === 'string' ? speakerData : speakerData.id;
         const speaker = AppState.eventData.speakers[speakerId];
         
-        // Handle missing speakers gracefully
         if (!speaker) {
             const fallbackName = typeof speakerData === 'object' && speakerData.name ? speakerData.name : 'Speaker';
             return `<div class="speaker-fallback" data-speaker-id="${speakerId}">
@@ -994,7 +906,6 @@ class ScheduleRenderer {
 
     renderSessionSpeakers(speakers, date) {
         return speakers.map(speakerData => {
-            // Handle null speakers
             if (!speakerData) {
                 return `
                     <div class="session-speaker-detail">
@@ -1013,7 +924,6 @@ class ScheduleRenderer {
             const speaker = AppState.eventData.speakers[speakerId];
             
             if (!speaker) {
-                // Use speaker data from session if available
                 const name = typeof speakerData === 'object' && speakerData.name ? speakerData.name : 'Speaker';
                 return `
                     <div class="session-speaker-detail" data-speaker-id="${speakerId}">
@@ -1047,12 +957,10 @@ class ScheduleRenderer {
     }
 
     bindEvents() {
-        // Only bind events if data is ready
         if (!AppState.isDataReady) {
             return;
         }
 
-        // Session toggle events
         this.container.addEventListener('click', (e) => {
             const toggleElement = e.target.closest('[data-session-toggle]');
             if (toggleElement) {
@@ -1062,7 +970,6 @@ class ScheduleRenderer {
             }
         });
 
-        // Keyboard navigation for sessions
         this.container.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 const session = e.target.closest('.session');
@@ -1074,7 +981,6 @@ class ScheduleRenderer {
             }
         });
 
-        // Speaker avatar clicks
         this.container.addEventListener('click', (e) => {
             if (e.target.classList.contains('speaker-avatar') || e.target.classList.contains('speaker-fallback')) {
                 const speakerId = e.target.dataset.speakerId;
@@ -1084,7 +990,6 @@ class ScheduleRenderer {
             }
         });
 
-        // Session speaker detail clicks
         this.container.addEventListener('click', (e) => {
             const speakerDetail = e.target.closest('.session-speaker-detail');
             if (speakerDetail) {
@@ -1106,37 +1011,25 @@ class ScheduleRenderer {
         
         const isExpanded = sessionElement.classList.contains('expanded');
         
-        // Track session view when expanding - USE ACTUAL SESSION DATA
         if (!isExpanded) {
-            // Get session from AppState instead of DOM
             const session = AppState.eventData?.sessionsById[sessionId];
             
             if (session) {
-                // Update URL with session anchor
-                const sessionAnchor = sessionElement.id; // Use the existing ID which is the anchor
+                const sessionAnchor = sessionElement.id;
                 if (window.history && window.history.pushState && sessionAnchor) {
                     window.history.pushState(null, '', `#${sessionAnchor}`);
                 }
                 
-                // Validate session title
                 const sessionTitle = Utils.ensureNonEmptyString(session.title, 'Unknown Session');
                 const topics = session.topics || [];
                 
                 Analytics.trackSessionDetailsView(sessionTitle, topics);
             } else {
-                // Fallback tracking
                 Analytics.trackSessionDetailsView('Session Not Found', []);
-            }
-        } else {
-            // When collapsing, remove the hash from the URL without causing a page jump.
-            if (window.history && window.history.replaceState) {
-                const baseUrl = window.location.pathname + window.location.search;
-                window.history.replaceState(null, '', baseUrl);
             }
         }
         
         if (isExpanded) {
-            // Collapse
             sessionElement.classList.remove('expanded');
             sessionElement.setAttribute('aria-expanded', 'false');
             detailsElement.style.maxHeight = '0';
@@ -1147,16 +1040,13 @@ class ScheduleRenderer {
                 expandLabel.setAttribute('data-label', 'Click to expand');
             }
         } else {
-            // Expand
             sessionElement.classList.add('expanded');
             sessionElement.setAttribute('aria-expanded', 'true');
             
-            // Reset maxHeight to get accurate scrollHeight
             detailsElement.style.maxHeight = 'none';
             const height = detailsElement.scrollHeight;
             detailsElement.style.maxHeight = '0';
             
-            // Trigger reflow and set the proper height
             requestAnimationFrame(() => {
                 detailsElement.style.maxHeight = height + 'px';
             });
@@ -1211,10 +1101,8 @@ class ScheduleRenderer {
     }
 
     findSessionById(sessionId) {
-        // Use the new sessionsById lookup for better performance
         const session = AppState.eventData?.sessionsById[sessionId];
         if (session) {
-            // Find the date from schedule
             for (const day of AppState.eventData.schedule) {
                 if (day.sessions.some(s => s.id === sessionId)) {
                     return { ...session, date: day.date, dayName: day.dayName };
@@ -1248,13 +1136,12 @@ class ScheduleRenderer {
     }
 }
 
-// Speakers Renderer with Incremental Loading
 class SpeakersRenderer {
     constructor(modalHandler) {
         this.container = document.getElementById('speakers-container');
         this.modalHandler = modalHandler;
         this.loadedCount = 0;
-        this.batchSize = 12; // Load 12 speakers at a time
+        this.batchSize = 12;
         this.allSpeakers = [];
         this.isLoading = false;
     }
@@ -1266,7 +1153,6 @@ class SpeakersRenderer {
         }
 
         try {
-            // Remove hardcoded confirmed filter - show all speakers
             this.allSpeakers = Object.entries(AppState.eventData.speakers)
                 .sort(([,a], [,b]) => a.name.localeCompare(b.name));
 
@@ -1275,14 +1161,11 @@ class SpeakersRenderer {
                 return;
             }
 
-            // Reset state
             this.loadedCount = 0;
             this.container.innerHTML = '';
             
-            // Load initial batch
             this.loadNextBatch();
             
-            // Setup incremental loading if there are more speakers
             if (this.allSpeakers.length > this.batchSize) {
                 this.setupIncrementalLoading();
             }
@@ -1303,11 +1186,9 @@ class SpeakersRenderer {
             .map(([id, speaker]) => this.renderSpeakerCard(id, speaker))
             .join('');
         
-        // Initial load: Instant rendering
         if (this.loadedCount === 0) {
             this.container.innerHTML = batchHTML;
         } else {
-            // Load More: Smooth staggered animation with faster timing
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = batchHTML;
             
@@ -1317,25 +1198,22 @@ class SpeakersRenderer {
                     card.style.transform = 'translateY(20px)';
                     this.container.appendChild(card);
                     
-                    // Trigger animation
                     requestAnimationFrame(() => {
                         card.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
                         card.style.opacity = '1';
                         card.style.transform = 'translateY(0)';
                     });
-                }, index * 20); // Reduced from 100ms to 20ms for faster load more
+                }, index * 20);
             });
         }
         
         this.loadedCount += nextBatch.length;
         this.isLoading = false;
         
-        // Update or remove load more button
         this.updateLoadMoreButton();
     }
     
     setupIncrementalLoading() {
-        // Add load more button
         const loadMoreButton = document.createElement('div');
         loadMoreButton.className = 'load-more-container';
         loadMoreButton.innerHTML = `
@@ -1347,12 +1225,10 @@ class SpeakersRenderer {
         
         this.container.parentNode.appendChild(loadMoreButton);
         
-        // Bind load more event
         document.getElementById('loadMoreSpeakers')?.addEventListener('click', () => {
             this.loadNextBatch();
         });
         
-        // Optional: Auto-load on scroll (intersection observer)
         this.setupAutoLoad(loadMoreButton);
     }
     
@@ -1377,12 +1253,10 @@ class SpeakersRenderer {
         const remainingCount = this.allSpeakers.length - this.loadedCount;
         
         if (remainingCount <= 0) {
-            // All speakers loaded
             if (loadMoreContainer) {
                 loadMoreContainer.remove();
             }
         } else if (loadMoreBtn) {
-            // Update remaining count
             const countSpan = loadMoreBtn.querySelector('.speakers-count');
             if (countSpan) {
                 countSpan.textContent = `(${remainingCount} remaining)`;
@@ -1423,7 +1297,6 @@ class SpeakersRenderer {
     }
 
     bindEvents() {
-        // Only bind if data is ready
         if (!AppState.isDataReady) {
             return;
         }
@@ -1458,7 +1331,6 @@ class SpeakersRenderer {
     }
 }
 
-// Timezone Controller
 class TimezoneController {
     constructor(scheduleRenderer) {
         this.scheduleRenderer = scheduleRenderer;
@@ -1473,7 +1345,6 @@ class TimezoneController {
                 this.setActiveTimezone(timezone);
                 this.scheduleRenderer.updateTimezone(timezone);
                 
-                // Track timezone change
                 Analytics.trackTimezoneChange(timezone);
             });
         });
@@ -1486,7 +1357,6 @@ class TimezoneController {
     }
 }
 
-// Animation Controller
 class AnimationController {
     constructor() {
         this.observer = new IntersectionObserver(
@@ -1520,14 +1390,11 @@ class AnimationController {
     }
 }
 
-// Analytics Helper with Specific Event Names
 const Analytics = {
     track(eventName, parameters = {}) {
-        // Validate all parameters before sending
         const validatedParams = {};
         
         Object.entries(parameters).forEach(([key, value]) => {
-            // Ensure all values are non-empty strings
             validatedParams[key] = Utils.ensureNonEmptyString(value, 'Not Specified');
         });
         
@@ -1536,46 +1403,36 @@ const Analytics = {
         }
     },
     
-    // Track registration button clicks
     trackRegistrationClick(location = 'header') {
-        // Use EventAnalytics if available and user consented
         if (window.EventAnalytics && window.CookieConsent && window.CookieConsent.canTrack()) {
             window.EventAnalytics.trackRegistrationClick(location);
             return;
         }
         
-        // Fallback to basic tracking
         this.track('registration_click', {
             link_location: location,
             transport_type: 'beacon'
         });
     },
     
-    // Track CFP clicks
     trackCFPClick() {
-        // Use EventAnalytics if available and user consented
         if (window.EventAnalytics && window.CookieConsent && window.CookieConsent.canTrack()) {
             window.EventAnalytics.trackCFPClick();
             return;
         }
         
-        // Fallback to basic tracking
         this.track('cfp_click', {
             link_location: 'navigation',
             transport_type: 'beacon'
         });
     },
     
-    // Track session detail views - FIXED
     trackSessionDetailsView(sessionTitle, sessionTopics = []) {
-        // Use EventAnalytics if available and user consented
         if (window.EventAnalytics && window.CookieConsent && window.CookieConsent.canTrack()) {
-            // Get full session data from AppState if available
             const session = Object.values(AppState.eventData?.sessionsById || {})
                 .find(s => s.title === sessionTitle);
             
             if (session) {
-                // Get speaker names
                 const speakerNames = session.speakers.map(id => 
                     AppState.eventData?.speakers[id]?.name || 'Unknown'
                 );
@@ -1591,7 +1448,6 @@ const Analytics = {
             }
         }
         
-        // Fallback to basic tracking
         const validTitle = Utils.ensureNonEmptyString(sessionTitle, 'Unknown Session');
         const validTopics = sessionTopics.filter(t => t && t.trim()).join(', ') || 'No Topics';
         
@@ -1602,19 +1458,16 @@ const Analytics = {
         });
     },
     
-    // Track speaker profile views - ENHANCED
     trackSpeakerProfileView(speakerName, isJavaChampion = false) {
-        // Use EventAnalytics if available and user consented
         if (window.EventAnalytics && window.CookieConsent && window.CookieConsent.canTrack()) {
             window.EventAnalytics.trackSpeakerView({
                 name: speakerName,
                 isJavaChampion: isJavaChampion,
-                company: '' // You could extract this from speaker.title if needed
+                company: ''
             });
             return;
         }
         
-        // Fallback to basic tracking
         const validName = Utils.ensureNonEmptyString(speakerName, 'Unknown Speaker');
         
         this.track('view_speaker_profile', {
@@ -1623,15 +1476,12 @@ const Analytics = {
         });
     },
     
-    // Track filter usage
     trackFilterUse(filterType, filterValue) {
-        // Use EventAnalytics if available and user consented
         if (window.EventAnalytics && window.CookieConsent && window.CookieConsent.canTrack()) {
             window.EventAnalytics.trackFilterUse(filterType, filterValue);
             return;
         }
         
-        // Fallback to basic tracking
         const validType = Utils.ensureNonEmptyString(filterType, 'Unknown Filter');
         const validValue = Utils.ensureNonEmptyString(filterValue, 'No Value');
         
@@ -1641,15 +1491,12 @@ const Analytics = {
         });
     },
     
-    // Track timezone changes
     trackTimezoneChange(timezone) {
-        // Use EventAnalytics if available and user consented
         if (window.EventAnalytics && window.CookieConsent && window.CookieConsent.canTrack()) {
             window.EventAnalytics.trackTimezoneChange(timezone);
             return;
         }
         
-        // Fallback to basic tracking
         const validTimezone = Utils.ensureNonEmptyString(timezone, 'Unknown Timezone');
         
         this.track('change_timezone', {
@@ -1658,7 +1505,6 @@ const Analytics = {
     }
 };
 
-// Main Application
 class App {
     constructor() {
         this.imagePreloader = new ImagePreloader();
@@ -1675,34 +1521,29 @@ class App {
     }
     
     initAnchorHandling() {
-        // Handle smooth scrolling for anchor links
         document.addEventListener('click', (e) => {
             const link = e.target.closest('a[href^="#"]');
             if (link) {
                 const targetId = link.getAttribute('href').substring(1);
                 
-                // Don't handle navigation if it's a speaker card click
                 const speakerCard = e.target.closest('.speaker-card');
                 if (speakerCard) {
-                    return; // Let the speaker card handler deal with it
+                    return;
                 }
                 
                 e.preventDefault();
                 this.scrollToAnchor(targetId);
                 
-                // Update URL without triggering scroll
                 if (window.history && window.history.pushState) {
                     window.history.pushState(null, '', `#${targetId}`);
                 }
             }
         });
         
-        // Handle browser back/forward buttons
         window.addEventListener('popstate', () => {
             this.handleHashChange();
         });
         
-        // Handle initial load with hash
         window.addEventListener('hashchange', () => {
             this.handleHashChange();
         });
@@ -1711,10 +1552,9 @@ class App {
     scrollToAnchor(targetId) {
         const element = document.getElementById(targetId);
         if (element) {
-            // Get header height for offset
             const header = document.querySelector('.nav');
             const headerHeight = header ? header.offsetHeight : 0;
-            const offset = headerHeight + 20; // Add some padding
+            const offset = headerHeight + 20;
             
             const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
             const offsetPosition = elementPosition - offset;
@@ -1724,14 +1564,13 @@ class App {
                 behavior: 'smooth'
             });
             
-            // If it's a session, expand it after scrolling
             if (element.classList.contains('session')) {
                 setTimeout(() => {
                     const sessionId = element.dataset.sessionId;
                     if (sessionId && !element.classList.contains('expanded')) {
                         this.scheduleRenderer.toggleSessionDetails(sessionId);
                     }
-                }, 600); // Wait for scroll to complete
+                }, 600);
             }
         }
     }
@@ -1739,30 +1578,24 @@ class App {
     handleHashChange() {
         const hash = window.location.hash.substring(1);
         if (hash) {
-            // Wait for content to load if necessary
             if (AppState.isDataReady) {
-                // Check if it's a speaker anchor
                 const targetElement = document.getElementById(hash);
                 if (targetElement && targetElement.classList.contains('speaker-card')) {
-                    // It's a speaker - open the modal
                     const speakerId = targetElement.dataset.speakerId;
                     if (speakerId) {
                         this.modalHandler.showSpeaker(speakerId);
-                        return; // Don't scroll, modal will handle it
+                        return;
                     }
                 }
                 
-                // Otherwise, scroll to the anchor
                 this.scrollToAnchor(hash);
             } else {
-                // Store hash to process after data loads
                 this.pendingHash = hash;
             }
         }
     }
     
     initAnalytics() {
-        // Track registration button clicks
         document.querySelectorAll('a[href*="soujava.dev/30y-celebration-week"]').forEach(link => {
             link.addEventListener('click', () => {
                 const location = link.closest('header') ? 'header' : 
@@ -1772,14 +1605,12 @@ class App {
             });
         });
         
-        // Track CFP link clicks
         document.querySelectorAll('a[href*="sessionize.com"]').forEach(link => {
             link.addEventListener('click', () => {
                 Analytics.trackCFPClick();
             });
         });
         
-        // Track supporter/partner clicks - Aletyx
         document.querySelectorAll('a[href*="aletyx.com"]').forEach(link => {
             link.addEventListener('click', () => {
                 if (window.EventAnalytics && window.CookieConsent && window.CookieConsent.canTrack()) {
@@ -1796,7 +1627,6 @@ class App {
             });
         });
         
-        // Track organizer clicks - SouJava
         document.querySelectorAll('a[href*="soujava.org"]').forEach(link => {
             link.addEventListener('click', () => {
                 if (window.EventAnalytics && window.CookieConsent && window.CookieConsent.canTrack()) {
@@ -1812,7 +1642,6 @@ class App {
             });
         });
         
-        // Track speaker social media clicks
         document.addEventListener('click', (e) => {
             const socialLink = e.target.closest('.social-link, .speaker-social-link');
             if (socialLink) {
@@ -1839,14 +1668,12 @@ class App {
                 navLinks.classList.toggle('active');
             });
             
-            // Close mobile nav when clicking links
             navLinks.addEventListener('click', (e) => {
                 if (e.target.tagName === 'A') {
                     navLinks.classList.remove('active');
                 }
             });
             
-            // Close mobile nav when clicking outside
             document.addEventListener('click', (e) => {
                 if (!navToggle.contains(e.target) && !navLinks.contains(e.target)) {
                     navLinks.classList.remove('active');
@@ -1858,16 +1685,15 @@ class App {
     async init() {
         try {
             AppState.isLoading = true;
-            AppState.isDataReady = false; // Ensure data ready flag is false
+            AppState.isDataReady = false;
             this.scheduleRenderer.renderLoading();
             this.speakersRenderer.renderLoading();
 
             AppState.eventData = await DataLoader.loadEventData();
             AppState.isLoading = false;
             AppState.error = null;
-            AppState.isDataReady = true; // Set data ready flag
+            AppState.isDataReady = true;
 
-            // Preload speaker images
             if (AppState.eventData.speakers) {
                 this.imagePreloader.preloadSpeakerImages(AppState.eventData.speakers);
                 this.speakerCarousel.populate(AppState.eventData.speakers);
@@ -1879,13 +1705,10 @@ class App {
             
             this.animationController.observeNewElements();
             
-            // Handle pending hash navigation after data loads
             if (this.pendingHash) {
                 setTimeout(() => {
-                    // Check if it's a speaker anchor
                     const targetElement = document.getElementById(this.pendingHash);
                     if (targetElement && targetElement.classList.contains('speaker-card')) {
-                        // It's a speaker - open the modal
                         const speakerId = targetElement.dataset.speakerId;
                         if (speakerId) {
                             this.modalHandler.showSpeaker(speakerId);
@@ -1894,12 +1717,10 @@ class App {
                         }
                     }
                     
-                    // Otherwise, scroll to it
                     this.scrollToAnchor(this.pendingHash);
                     this.pendingHash = null;
-                }, 100); // Small delay to ensure DOM is ready
+                }, 100);
             } else {
-                // Check for hash in URL on initial load
                 this.handleHashChange();
             }
 
@@ -1914,9 +1735,7 @@ class App {
     }
 }
 
-// Global error handling
 window.addEventListener('error', function(e) {
-    // Silently handle ResizeObserver errors which are benign
     if (e.error && e.error.message && e.error.message.includes('ResizeObserver')) {
         e.preventDefault();
         return;
@@ -1924,19 +1743,16 @@ window.addEventListener('error', function(e) {
 });
 
 window.addEventListener('unhandledrejection', function(e) {
-    // Silently handle expected promise rejections
     if (e.reason && (e.reason.toString().includes('fetch') || e.reason.toString().includes('network'))) {
         e.preventDefault();
         return;
     }
 });
 
-// Apply Hero CTA Configuration
 function applyHeroCtaConfig() {
   const primaryBtn = document.getElementById('primaryCtaButton');
   const secondaryBtn = document.getElementById('secondaryCtaButton');
 
-  // Configure Primary Button
   if (primaryBtn && HERO_CTA_CONFIG.primary && HERO_CTA_CONFIG.primary.text) {
     primaryBtn.textContent = HERO_CTA_CONFIG.primary.text;
     primaryBtn.href = HERO_CTA_CONFIG.primary.link;
@@ -1945,7 +1761,6 @@ function applyHeroCtaConfig() {
     primaryBtn.style.display = 'inline-flex';
   }
 
-  // Configure Secondary Button
   if (secondaryBtn && HERO_CTA_CONFIG.showSecondaryButton && HERO_CTA_CONFIG.secondary && HERO_CTA_CONFIG.secondary.text) {
     secondaryBtn.textContent = HERO_CTA_CONFIG.secondary.text;
     secondaryBtn.href = HERO_CTA_CONFIG.secondary.link;
@@ -1953,24 +1768,21 @@ function applyHeroCtaConfig() {
     secondaryBtn.rel = "noopener";
     secondaryBtn.style.display = 'inline-flex';
   } else if (secondaryBtn) {
-    secondaryBtn.style.display = 'none'; // Ensure it's hidden if not configured
+    secondaryBtn.style.display = 'none';
   }
 }
 
-// Initialize Application
 let app;
 let modalHandler;
 
 function initApp() {
     app = new App();
-    modalHandler = app.modalHandler; // Make modal handler globally available
+    modalHandler = app.modalHandler;
     app.init();
     
-    // Apply hero CTA configuration
     applyHeroCtaConfig();
 }
 
-// Start the application when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initApp);
 } else {

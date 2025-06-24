@@ -7,16 +7,13 @@
     <title>Java 30Y #CelebrationWeek</title>
     <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
     
-    <!-- Cookie Consent - Must load before analytics -->
     <script src="js/cookie-consent.js"></script>
     
-    <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-K4QDNZB9C7"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       
-      // Configure consent mode before GA4 initialization
       gtag('consent', 'default', {
         'analytics_storage': 'denied',
         'functionality_storage': 'granted',
@@ -27,7 +24,6 @@
       
       gtag('js', new Date());
       
-      // Basic anonymous config - always runs
       gtag('config', 'G-K4QDNZB9C7', {
         'anonymize_ip': true,
         'allow_google_signals': false,
@@ -36,20 +32,17 @@
     </script>
 
     
-    <!-- Performance Optimizations -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     
-    <!-- SEO Meta Tags -->
     <meta property="og:title" content="30-Year #CelebrationWeek">
     <meta property="og:description" content="Free online Java conference with Java Champions & Enthusiasts from around the globe">
     <meta property="og:type" content="website">
     <meta property="og:image" content="https://soujava.github.io/java30y-celebration-week/sm/banner.png">
     <meta name="twitter:card" content="summary_large_image">
     
-    <!-- Structured Data -->
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
@@ -81,10 +74,8 @@
 </head>
 
 <body>
-    <!-- Skip Link for Accessibility -->
     <a href="#main-content" class="skip-link">Skip to main content</a>
 
-    <!-- Navigation -->
     <nav class="nav">
         <div class="container">
             <div class="nav-content">
@@ -104,7 +95,6 @@
         </div>
     </nav>
 
-    <!-- Header -->
     <header class="header" id="home" role="banner">
         <div class="container">
             <div class="header-content">
@@ -134,11 +124,9 @@
                     <p class="live-cta-subtext">Access the live streams, agenda, and recordings. Open to all.</p>
                 </div>
                 
-                <!-- Speaker Carousel -->
                 <div class="speaker-carousel">
                     <div class="carousel-container" id="speakerCarousel">
                         <div class="carousel-track">
-                            <!-- Speakers will be populated by JavaScript -->
                         </div>
                     </div>
                 </div>
@@ -150,9 +138,32 @@
         </div>
     </header>
 
-    <!-- Main Content -->
+    <section class="sponsors-section" id="sponsors">
+        <div class="container">
+            <div class="sponsors-grid">
+                <div class="sponsor-column">
+                    <p class="sponsor-label">Brought to you by</p>
+                    <a href="https://soujava.org.br" target="_blank" rel="noopener" class="logo-link">
+                        <img src="./logos/soujava.png" alt="SouJava" class="organizer-logo">
+                    </a>
+                </div>
+                
+                <div class="sponsor-column">
+                    <p class="sponsor-label">Proudly supported by</p>
+                    <div class="supporter-logos">
+                        <a href="https://aletyx.com" target="_blank" rel="noopener" class="logo-link">
+                            <img src="./logos/aletyx.png" alt="Aletyx" class="supporter-logo">
+                        </a>
+                        <a href="https://jakarta.ee" target="_blank" rel="noopener" class="logo-link">
+                            <img src="./logos/jakartaee.png" alt="Jakarta EE" class="supporter-logo">
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <main id="main-content">
-        <!-- Agenda Section -->
         <section class="section" id="agenda">
             <div class="container">
                 <div class="section-content">
@@ -204,7 +215,6 @@
             </div>
         </section>
 
-        <!-- Speakers Section -->
         <section class="section" id="speakers">
             <div class="container">
                 <div class="section-content">
@@ -224,32 +234,8 @@
 
     </main>
 
-    <!-- Footer -->
     <footer class="footer">
         <div class="container">
-            <div class="footer-content">
-                <!-- Organizer Tier -->
-                <div class="footer-tier footer-organizer">
-                    <p class="sponsor-label">Brought to you by</p>
-                    <a href="https://soujava.org.br" target="_blank" rel="noopener" class="logo-link">
-                        <img src="./logos/soujava.png" alt="SouJava" class="organizer-logo">
-                    </a>
-                </div>
-                
-                <!-- Supporter Tier -->
-                <div class="footer-tier footer-supporters">
-                    <p class="sponsor-label">Proudly supported by</p>
-                    <div class="supporter-logos">
-                        <a href="https://aletyx.com" target="_blank" rel="noopener" class="logo-link">
-                            <img src="./logos/aletyx.png" alt="Aletyx" class="supporter-logo">
-                        </a>
-                        <a href="https://jakarta.ee" target="_blank" rel="noopener" class="logo-link">
-                            <img src="./logos/jakartaee.png" alt="Jakarta EE" class="supporter-logo">
-                        </a>
-                    </div>
-                </div>
-            </div>
-            
             <div class="footer-bottom">
                 <p>&copy; 2025 SouJava. All rights reserved. | 
                    <a href="#" onclick="CookieConsent.showPreferences(); return false;" style="color: var(--text-secondary); text-decoration: underline;">Cookie Settings</a>
@@ -258,7 +244,6 @@
         </div>
     </footer>
 
-    <!-- Modals -->
     <div class="modal" id="speakerModal" role="dialog" aria-labelledby="speakerName" aria-modal="true">
         <div class="modal-content">
             <div class="modal-header">

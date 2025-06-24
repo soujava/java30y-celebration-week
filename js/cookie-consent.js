@@ -1,24 +1,16 @@
-/**
- * Simple Cookie Consent for Java 30Y Event
- * GDPR/LGPD Compliant
- */
-
 const CookieConsent = {
     hasConsent: false,
     consentKey: 'java30y_analytics_consent',
     
     init() {
-        // Check if user already gave consent
         const savedConsent = localStorage.getItem(this.consentKey);
         
         if (savedConsent === 'accepted') {
             this.hasConsent = true;
             this.enableAnalytics();
         } else if (savedConsent === null) {
-            // First visit - show banner
             this.showBanner();
         }
-        // If rejected, do nothing (analytics stays disabled)
     },
     
     showBanner() {
@@ -38,7 +30,6 @@ const CookieConsent = {
             </div>
         `;
         
-        // Add styles
         const style = document.createElement('style');
         style.textContent = `
             #cookie-consent-banner {
@@ -149,7 +140,6 @@ const CookieConsent = {
         this.removeBanner();
         this.enableAnalytics();
         
-        // Track consent given
         if (typeof gtag !== 'undefined') {
             gtag('consent', 'update', {
                 'analytics_storage': 'granted'
@@ -167,7 +157,6 @@ const CookieConsent = {
         localStorage.setItem(this.consentKey, 'rejected');
         this.removeBanner();
         
-        // Ensure analytics stays disabled
         if (typeof gtag !== 'undefined') {
             gtag('consent', 'update', {
                 'analytics_storage': 'denied'
@@ -185,12 +174,10 @@ const CookieConsent = {
     },
     
     enableAnalytics() {
-        // Re-initialize enhanced tracking after consent
         if (window.EventAnalytics && typeof window.EventAnalytics.initEnhancedTracking === 'function') {
             window.EventAnalytics.initEnhancedTracking();
         }
         
-        // Update consent mode to allow cookies
         if (typeof gtag !== 'undefined') {
             gtag('consent', 'update', {
                 'analytics_storage': 'granted'
@@ -198,31 +185,26 @@ const CookieConsent = {
         }
     },
     
-    // Check if user has consented (for use in other scripts)
     canTrack() {
         return this.hasConsent;
     },
     
-    // Allow users to change their consent
     resetConsent() {
         localStorage.removeItem(this.consentKey);
         this.hasConsent = false;
         location.reload();
     },
     
-    // Show preferences (can be called from anywhere)
     showPreferences() {
         localStorage.removeItem(this.consentKey);
         this.showBanner();
     }
 };
 
-// Wait for DOM to be ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => CookieConsent.init());
 } else {
     CookieConsent.init();
 }
 
-// Make it globally available
 window.CookieConsent = CookieConsent;
